@@ -36,6 +36,12 @@ pnpm dev                # http://localhost:3000
 
 | 시나리오 | 탭 수 | 결과 |
 | --- | --- | --- |
+| M1 편집: 입력·Enter/Tab 이동(Tab 후 Enter 시작 열 복귀)·F2·더블클릭 편집·Esc 취소·숫자 오른쪽 정렬 | 1 | Chromium 통과 (2026-10-02, Playwright 스크립트), Safari 미검증 |
+| M1 선택·서식: Shift+방향키·드래그 범위, Cmd+B 범위 굵게, 상태 표시줄 합계 | 1 | Chromium 통과, Safari 미검증 |
+| M1 클립보드: 복사·붙여넣기(값+서식), 단일 셀 → 범위 채우기, 외부 TSV(따옴표 안 탭), 잘라내기, Delete | 1 | Chromium 통과, Safari 미검증 |
+| M1 실행 취소: 붙여넣기 한 번 undo, redo | 1 | Chromium 통과 |
+| M1 한글: IME 조합 입력의 첫 글자 유지 | 1 | Chromium 통과 (CDP IME 조합 주입), 실제 macOS IME 미검증 |
+| M1 영속: 새로고침 후 내용 유지 | 1 | Chromium 통과 |
 
 ## 개발 방식
 

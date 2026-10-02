@@ -16,9 +16,9 @@ last_verified: 2026-10-02
 | 저장소 | pnpm workspace — `apps/web`, `packages/sheet-core` | `pnpm-workspace.yaml` |
 | 프레임워크 | Next.js 15.5.16 App Router + Turbopack, React 19.2.8 | `apps/web/package.json` |
 | 언어 | TypeScript 5 `strict` (core는 `noUncheckedIndexedAccess` 추가) | 각 패키지 `tsconfig.json` |
-| 동기화 | Yjs (`Y.Doc`, `Y.UndoManager`, awareness). 전송은 BroadcastChannel, 영속은 IndexedDB — 브라우저 API만 | 첫 사용 커밋에서 추가 |
-| 로컬 UI 상태 | Zustand 5 | 첫 사용 커밋에서 추가 |
-| 스타일 | styled-components 6 (App Router SSR registry 포함) | 첫 사용 커밋에서 추가 |
+| 동기화 | Yjs 13.6.33 (`Y.Doc`, `Y.UndoManager`, awareness), 영속 y-indexeddb 9.0.12. 탭 간 전송은 BroadcastChannel(M2) — 브라우저 API만 | `packages/sheet-core/package.json`, `apps/web/package.json` |
+| 로컬 UI 상태 | Zustand 5.0.15 | `apps/web/package.json` |
+| 스타일 | styled-components 6.5.3 (SSR registry `StyledRegistry`, SWC `compiler.styledComponents`) | `apps/web/package.json`, `apps/web/next.config.ts` |
 | 테스트 | Vitest 5 — `@sheet/core` 대상 | `packages/sheet-core/package.json` |
 | LLM 연결 | 미결 — `docs/spec/gap-analysis.md` 미결 결정 | — |
 

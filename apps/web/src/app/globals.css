@@ -1,3 +1,16 @@
+/* 시각 토큰 — 근거는 DESIGN.md 10절 */
+:root {
+  --paper: #fcfcfa;
+  --rule: #e2e4e0;
+  --header: #f3f4f1;
+  --header-selected: #e4e6f6;
+  --ink: #1e2328;
+  --ink-muted: #6b7177;
+  --ink-faint: #b4b8bc;
+  --accent: #2735c4;
+  --accent-wash: rgb(39 53 196 / 0.09);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -6,4 +19,13 @@ html,
 body {
   margin: 0;
   height: 100%;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", system-ui, sans-serif;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
 }
