@@ -22,6 +22,9 @@
 | 문서 스키마(칸별 셀 맵, `"행:열"` 키), 고정 100×26 그리드 | LLM 제안 → 사람 승인 | 객체 통째 저장과 가상화를 대안으로 비교한 브리핑 후 결정 |
 | `packages/sheet-core/src/sheet.ts`, `clipboard.ts` + 테스트 | LLM 생성 | undo `captureTimeout: 0`, 붙여넣기의 단일 셀 채우기·시트 밖 잘림을 테스트로 고정. 두 `Y.Doc` 교환으로 "내 변경만 undo"와 값·서식 동시 병합 검증 |
 | `apps/web/src/` (collab·stores·hooks·components) | LLM 생성 | 활성 셀 위 상시 입력칸(한글 IME), 준비·입력·편집 모드. 브라우저 시나리오 21건으로 검증하며 결함 수정 (사례 4·5) |
+| 참여자 이름 흐름 (첫 접속 이름 지정, `localStorage` 저장, 헤더 아바타에서 수정·삭제, 아바타 색 = 셀 포인터 색, 10색 무작위), 전송 방식(BroadcastChannel) | 사람 결정 | 이름 지정 흐름과 저장 위치·UI는 사람이 정의. 전송 방식은 LLM이 대안 3개를 비교해 추천, 사람이 채택 |
+| `apps/web/src/collab/broadcastProvider.ts`, `sheetSession.ts` | LLM 생성 | 합류 인사(state vector), awareness 중계, `pagehide` 제거. 두·세 탭 시나리오로 C1~C7 확인 |
+| `packages/sheet-core/src/participants.ts`, 참여자 UI(`ParticipantMenu`, `NameDialog`, `RemoteCursors`), `identityStore`, `usePresence` | LLM 생성 | 팔레트 10색은 LLM이 흰 글자 대비 4.5:1 기준으로 선정. 탭 공유 이름 충돌 보완(사례 7), 동명이인 순서 결함 수정(사례 6) |
 
 ## 3. 이슈와 해결 과정 (LLM 오류·기각·수정 사례 포함)
 
@@ -49,6 +52,16 @@
 - **무엇**: 첫 `Grid` 초안이 Zustand store 전체를 구독하고 렌더마다 모든 셀을 `Y.Doc`에서 다시 읽었다. 입력 중 초안이 바뀔 때마다 그리드 전체가 다시 계산되는 구조.
 - **어떻게 알았나**: 상태 소유권 규칙(로컬 초안은 Zustand, 셀은 `Y.Doc`)대로 구독 범위를 대조하다가 발견.
 - **수정**: 입력칸을 `ActiveInput`으로 분리해 모드·초안만 구독, 셀 목록은 문서 `version`이 바뀔 때만 다시 만들고(`useMemo`), 셀 컴포넌트는 원시값 props + `memo`.
+
+### 사례 6 — 동명이인 번호를 무작위 순서로 붙임 (LLM 오류, 스크린샷 검토로 발견)
+- **무엇**: 같은 이름의 참여자에게 "합류 순서대로" `이름 2`를 붙인다고 문서와 주석에 쓰고, 실제로는 Yjs `clientID` 오름차순으로 정렬했다. `clientID`는 탭마다 무작위로 정해지는 수라 순서가 합류와 무관했다.
+- **어떻게 알았나**: 자동 시나리오는 "번호가 붙었는가"만 확인해 통과했다. 결과 스크린샷에서 먼저 연 탭이 `이름 2`로 표시된 것을 보고 정렬 기준을 추적.
+- **수정**: awareness 상태에 합류 시각(`joinedAt`)을 싣고 그것으로 정렬, 같으면 `clientID`. core 테스트에 "clientId와 무관하게 합류 시각 순서" 케이스 추가, 시나리오는 "먼저 합류한 탭이 번호 없음"까지 확인하도록 강화.
+
+### 사례 7 — 이름 저장 위치(`localStorage`)와 "탭 = 다른 참여자" 명세의 충돌 (LLM 발견, 요구를 유지하며 보완)
+- **무엇**: 사람이 이름을 `localStorage`에 반영구 저장하도록 정했다. `localStorage`는 같은 브라우저의 모든 탭이 공유하므로 탭마다 이름이 같아지는데, 명세는 같은 브라우저의 탭 각각을 다른 참여자로 본다.
+- **판단**: 요구(반영구 이름, 첫 접속 때만 이름 지정)를 바꾸지 않고, 탭 구분을 색과 번호가 맡도록 했다 — 색은 탭 단위 `sessionStorage`, 겹치는 이름은 `이름 2`. 이름 변경은 같은 사람의 변경이므로 `storage` 이벤트로 모든 탭에 반영.
+- **남긴 것**: 탭마다 다른 이름이 필요해지면 이름도 `sessionStorage`로 옮기고 `localStorage`는 기본값으로만 쓰는 전환 경로를 `DESIGN.md` 12절에 기록.
 
 ## 4. 핵심 프롬프트 발췌
 
