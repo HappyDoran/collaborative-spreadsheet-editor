@@ -1,35 +1,27 @@
 "use client";
 
-import { SHEET_COLS, SHEET_ROWS, colToLabel, type CellAddress, type CellRange } from "@sheet/core";
+import { SHEET_COLS, SHEET_ROWS, colToLabel, type CellAddress } from "@sheet/core";
 import { memo, useEffect, useMemo, useRef, type MouseEvent, type RefObject } from "react";
 import styled from "styled-components";
 import { useShallow } from "zustand/react/shallow";
 import type { SheetCommands } from "@/hooks/useSheetCommands";
 import type { SheetActions } from "@/hooks/useSheet";
+import type { Participant } from "@/hooks/usePresence";
 import { selectedRange, useSelectionStore } from "@/stores/selectionStore";
+import { COL_W, HEADER_W, ROW_H, rectOf, single } from "./gridGeometry";
+import { RemoteCursors } from "./RemoteCursors";
 
-// 셀 크기 고정 — 선택 테두리 위치가 곱셈 하나로 정해진다 (DESIGN.md 9절).
-const COL_W = 104;
-const ROW_H = 26;
-const HEADER_W = 52;
-
-const rectOf = (range: CellRange) => ({
-  top: ROW_H + range.start.row * ROW_H,
-  left: HEADER_W + range.start.col * COL_W,
-  width: (range.end.col - range.start.col + 1) * COL_W,
-  height: (range.end.row - range.start.row + 1) * ROW_H,
-});
-const single = (addr: CellAddress): CellRange => ({ start: addr, end: addr });
 const NUMERIC = /^[-+]?(\d{1,3}(,\d{3})*|\d+)?(\.\d+)?%?$/;
 
 type Props = {
   actions: SheetActions;
   version: number; // 문서가 바뀔 때마다 증가 — 셀 목록을 다시 만드는 기준
+  others: Participant[]; // 다른 참여자 — 선택·편집 중 셀 표시
   commands: SheetCommands;
   inputRef: RefObject<HTMLInputElement | null>;
 };
 
-export function Grid({ actions, version, commands, inputRef }: Props) {
+export function Grid({ actions, version, others, commands, inputRef }: Props) {
   const { active, extent, copied } = useSelectionStore(
     useShallow((s) => ({ active: s.active, extent: s.extent, copied: s.copied })),
   );
@@ -127,6 +119,7 @@ export function Grid({ actions, version, commands, inputRef }: Props) {
         ))}
         {cells}
 
+        <RemoteCursors others={others} />
         <RangeBox style={rectOf(range)} $multi={range.start.row !== range.end.row || range.start.col !== range.end.col} />
         {copied && <CopyBox style={rectOf(copied)} />}
         <ActiveInput actions={actions} commands={commands} inputRef={inputRef} active={active} />
@@ -136,7 +129,12 @@ export function Grid({ actions, version, commands, inputRef }: Props) {
 }
 
 // 활성 셀 위에 늘 떠 있는 입력칸. 입력 중 글자마다 그리드 전체가 아니라 이 칸만 다시 그린다.
-function ActiveInput({ actions, commands, inputRef, active }: Omit<Props, "version"> & { active: CellAddress }) {
+function ActiveInput({
+  actions,
+  commands,
+  inputRef,
+  active,
+}: Omit<Props, "version" | "others"> & { active: CellAddress }) {
   const { mode, draft } = useSelectionStore(useShallow((s) => ({ mode: s.mode, draft: s.draft })));
   const cell = actions.read(active);
   return (

@@ -15,6 +15,7 @@ import {
   type CellRange,
 } from "@sheet/core";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import type { Awareness } from "y-protocols/awareness";
 import type * as Y from "yjs";
 import { openSheetSession, type SheetSession } from "@/collab/sheetSession";
 
@@ -31,7 +32,14 @@ export type SheetActions = {
 
 export type SheetState =
   | { status: "loading" }
-  | { status: "ready"; actions: SheetActions; version: number; canUndo: boolean; canRedo: boolean };
+  | {
+      status: "ready";
+      actions: SheetActions;
+      awareness: Awareness;
+      version: number;
+      canUndo: boolean;
+      canRedo: boolean;
+    };
 
 // Y.Doc 변경과 undo 스택 변화를 하나의 숫자로 구독한다. 셀 컴포넌트는 memo라 실제로 바뀐 셀만 다시 그린다.
 function subscribeTo(doc: Y.Doc, undo: Y.UndoManager) {
@@ -95,6 +103,13 @@ export function useSheet(sheetId: string): SheetState {
     };
   }, [session, undo]);
 
-  if (!actions || !undo) return { status: "loading" };
-  return { status: "ready", actions, version, canUndo: undo.canUndo(), canRedo: undo.canRedo() };
+  if (!session || !actions || !undo) return { status: "loading" };
+  return {
+    status: "ready",
+    actions,
+    awareness: session.awareness,
+    version,
+    canUndo: undo.canUndo(),
+    canRedo: undo.canRedo(),
+  };
 }

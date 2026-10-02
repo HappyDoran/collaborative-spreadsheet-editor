@@ -3,12 +3,10 @@
   --paper: #fcfcfa;
   --rule: #e2e4e0;
   --header: #f3f4f1;
-  --header-selected: #e4e6f6;
   --ink: #1e2328;
   --ink-muted: #6b7177;
   --ink-faint: #b4b8bc;
   --accent: #2735c4;
-  --accent-wash: rgb(39 53 196 / 0.09);
 }
 
 * {

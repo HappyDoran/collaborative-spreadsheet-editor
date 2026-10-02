@@ -16,7 +16,7 @@ last_verified: 2026-10-02
 | 저장소 | pnpm workspace — `apps/web`, `packages/sheet-core` | `pnpm-workspace.yaml` |
 | 프레임워크 | Next.js 15.5.16 App Router + Turbopack, React 19.2.8 | `apps/web/package.json` |
 | 언어 | TypeScript 5 `strict` (core는 `noUncheckedIndexedAccess` 추가) | 각 패키지 `tsconfig.json` |
-| 동기화 | Yjs 13.6.33 (`Y.Doc`, `Y.UndoManager`, awareness), 영속 y-indexeddb 9.0.12. 탭 간 전송은 BroadcastChannel(M2) — 브라우저 API만 | `packages/sheet-core/package.json`, `apps/web/package.json` |
+| 동기화 | Yjs 13.6.33 (`Y.Doc`, `Y.UndoManager`, awareness), awareness 프로토콜 y-protocols 1.0.7, 영속 y-indexeddb 9.0.12. 탭 간 전송은 BroadcastChannel 직접 연결(`apps/web/src/collab/broadcastProvider.ts`) — 브라우저 API만 | `packages/sheet-core/package.json`, `apps/web/package.json` |
 | 로컬 UI 상태 | Zustand 5.0.15 | `apps/web/package.json` |
 | 스타일 | styled-components 6.5.3 (SSR registry `StyledRegistry`, SWC `compiler.styledComponents`) | `apps/web/package.json`, `apps/web/next.config.ts` |
 | 테스트 | Vitest 5 — `@sheet/core` 대상 | `packages/sheet-core/package.json` |
@@ -35,6 +35,7 @@ last_verified: 2026-10-02
 | 공유 + 영속 | `Y.Doc` | 셀 값, 셀 서식 |
 | 공유 + 일시 (탭이 닫히면 사라짐) | Yjs awareness | 참여자 이름·색, 선택 범위, 편집 중 셀, AI 생성·검토 중 범위 |
 | 로컬 + 일시 | Zustand store | 내 선택 앵커, 편집 초안, AI 패널 UI, 내 AI 제안의 진행 상태 |
+| 로컬 + 반영구 | Zustand `persist` — 이름은 `localStorage`(브라우저 단위), 색은 `sessionStorage`(탭 단위) | 내 참여자 이름·색 (`apps/web/src/stores/identityStore.ts`) |
 
 - 셀 데이터는 `Y.Doc`가 유일한 진실이다. Zustand에 셀 값을 복제하지 않는다 — React는 `Y.Doc` 구독으로 렌더한다.
 - 다른 참여자에게 보여야 하는 일시 상태는 Zustand가 아니라 awareness에 둔다. awareness는 탭 종료 시 정리되어 요구사항 C6을 만족한다.
