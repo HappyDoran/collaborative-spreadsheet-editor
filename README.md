@@ -30,18 +30,15 @@ pnpm dev                # http://localhost:3000
 
 검증 계층과 테스트 필수 대상은 `.codex/skills/test-policy/SKILL.md`.
 
-### 다중 탭 수동 매트릭스
+### 수동 매트릭스
 
-런타임 동작을 바꾼 커밋은 아래 형식으로 결과를 남긴다. 시나리오는 기능이 구현될 때 추가한다.
+시나리오 단계와 기대 결과는 `docs/manual-scenarios.md`가 소유한다. 여기에는 시나리오 ID별 결과만 남긴다.
 
-| 시나리오 | 탭 수 | 결과 |
-| --- | --- | --- |
-| M1 편집: 입력·Enter/Tab 이동(Tab 후 Enter 시작 열 복귀)·F2·더블클릭 편집·Esc 취소·숫자 오른쪽 정렬 | 1 | Chromium 통과 (2026-10-02, Playwright 스크립트), Safari 미검증 |
-| M1 선택·서식: Shift+방향키·드래그 범위, Cmd+B 범위 굵게, 상태 표시줄 합계 | 1 | Chromium 통과, Safari 미검증 |
-| M1 클립보드: 복사·붙여넣기(값+서식), 단일 셀 → 범위 채우기, 외부 TSV(따옴표 안 탭), 잘라내기, Delete | 1 | Chromium 통과, Safari 미검증 |
-| M1 실행 취소: 붙여넣기 한 번 undo, redo | 1 | Chromium 통과 |
-| M1 한글: IME 조합 입력의 첫 글자 유지 | 1 | Chromium 통과 (CDP IME 조합 주입), 실제 macOS IME 미검증 |
-| M1 영속: 새로고침 후 내용 유지 | 1 | Chromium 통과 |
+| 시나리오 ID | 브라우저 | 날짜 | 결과 |
+| --- | --- | --- | --- |
+| M1-A1·A2·A4·A6·A10(일부), M1-B1(일부)·B2·B6, M1-C1(굵게), M1-D1·D3·D4, M1-E1·E2, M1-F1 | Chromium (Playwright 자동) | 2026-10-02 | 통과 |
+| M1-G1 (입력기 조합 흉내) | Chromium (CDP IME 주입) | 2026-10-02 | 통과 — 실제 입력기 미검증 |
+| 그 밖의 M1 전 항목 | Chrome, Safari | — | 미검증 |
 
 ## 개발 방식
 

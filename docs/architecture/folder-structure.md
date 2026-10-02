@@ -22,6 +22,7 @@ last_verified: 2026-10-02
 ├── docs/
 │   ├── AI_AGENT_HARNESS.md           # Agent 작업 지원 체계 설명
 │   ├── prompts.md                    # 프롬프트 원본 기록
+│   ├── manual-scenarios.md           # 수동 확인 시나리오 (ID·단계·기대 결과)
 │   ├── architecture/folder-structure.md
 │   └── spec/
 │       ├── requirements.md           # 요구사항 번호 (T·E·C·A·X·D)
