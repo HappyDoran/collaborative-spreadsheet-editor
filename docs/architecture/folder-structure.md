@@ -36,7 +36,11 @@ last_verified: 2026-10-02
 │   └── src/
 │       ├── index.ts                  # 공개 API 재수출
 │       ├── address.ts                # 0 기준 좌표 ↔ A1, 열 라벨, 범위 정규화
-│       └── address.test.ts           # 26진 경계, 잘못된 표기, 역방향 범위
+│       ├── address.test.ts           # 26진 경계, 잘못된 표기, 역방향 범위
+│       ├── sheet.ts                  # 문서 스키마(칸별 셀 맵), 값·서식·지우기·붙여넣기 연산, UndoManager 정책
+│       ├── sheet.test.ts             # 빈 셀 정리, 서식 토글, 붙여넣기 채우기·잘림, undo 단위, 두 탭 undo·동시 병합
+│       ├── clipboard.ts              # TSV 직렬화·파싱(따옴표 규칙), 서식 HTML 표 생성
+│       └── clipboard.test.ts         # CRLF, 따옴표 안 탭·줄바꿈, HTML 이스케이프
 └── apps/web/                         # @sheet/web — Next.js 15.5 App Router
     ├── next.config.ts                # transpilePackages: @sheet/core
     └── src/app/
