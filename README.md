@@ -38,7 +38,12 @@ pnpm dev                # http://localhost:3000
 | --- | --- | --- | --- |
 | M1-A1·A2·A4·A6·A10(일부), M1-B1(일부)·B2·B6, M1-C1(굵게), M1-D1·D3·D4, M1-E1·E2, M1-F1 | Chromium (Playwright 자동) | 2026-10-02 | 통과 |
 | M1-G1 (입력기 조합 흉내) | Chromium (CDP IME 주입) | 2026-10-02 | 통과 — 실제 입력기 미검증 |
-| 그 밖의 M1 전 항목 | Chrome, Safari | — | 미검증 |
+| M1-A1·A2·A3·A6·A7·A9·A10·A11·A12·A13, M1-B1·B3·B4·B6, M1-C1·C2·C4·C5, M1-D1·D2·D3·D4, M1-E1·E2·E3·E4·E5, M1-F1·F2·F3, M1-G1·G2·G3·G4, M1-H1·H2 | Safari | 2026-10-02~03 | 통과 — `localhost:3001` 실제 브라우저 UI 확인. F2·외부 앱 항목 제외 |
+| M1-A2·A3·A7·A11·A12, M1-B1·B3·B4·B6, M1-C1·C2·C4·C5, M1-D1·D2·D3·D4, M1-E1·E2·E3·E4·E5, M1-F1·F2·F3, M1-G1·G2·G3·G4, M1-H1·H2 | Chrome | 2026-10-03 | 통과 — `localhost:3001` 실제 브라우저 UI 확인 |
+| M1-B5 | Safari, Chrome | 2026-10-03 | 통과 — 왼쪽 위 모서리 클릭과 셀 선택 후 ⌘A 모두 전체 선택됨. ⌘A는 사용자 직접 확인으로 정정 |
+| M1-A4·A5·A8, M1-B2, M1-D5·D6·D7·D8·D9, M1-E6, M1-H3·H4 | Safari, Chrome | 2026-10-03 | 통과 — 사용자 직접 수동 확인 (재확인 순서 1~12) |
+| M1-A1·A6·A9·A10·A13 | Chrome | 2026-10-03 | 통과 — 사용자 직접 수동 확인 (재확인 순서 13~17) |
+| M1-C3 | `@sheet/core` Vitest | 2026-10-03 | 통과 — `pnpm test` 18/18, 혼합 서식 토글 포함 |
 
 ## 개발 방식
 
