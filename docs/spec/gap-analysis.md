@@ -12,7 +12,7 @@ last_verified: 2026-10-02
 
 - 완료: 저장소 골격, Agent 작업 지원 체계, M1 단일 탭 편집(Safari·Chrome 수동 확인 완료), M2 공동 편집(C1~C7 + 참여자 이름 지정·수정·삭제) — Chromium 두·세 탭 시나리오 22건 통과.
 - 남은 M2 검증: Safari·Chrome 실제 다중 탭 수동 확인 (`docs/manual-scenarios.md` M2).
-- 진행 중: Playwright 다중 탭 E2E 저장소 도입 (수동 매트릭스 10항목 초과 — `.codex/skills/test-policy/SKILL.md` 확장 조건).
+- 자동 테스트: Playwright 다중 탭 E2E 15건 도입(`pnpm e2e`) — 수동 매트릭스 10항목 초과로 test-policy 확장 조건 충족.
 - 미착수: A·X 전 항목, 배포, README 필수 절(T4, X1~X3 결정 이유).
 
 ## 2. 미결 결정 (착수 전에 정한다)

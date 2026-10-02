@@ -8,7 +8,7 @@ last_verified: 2026-10-03
 
 사람이 브라우저에서 직접 확인하는 절차의 정본이다. 결과(브라우저 × 날짜 × 통과 여부)는 `README.md` 수동 매트릭스에 시나리오 ID로 기록한다. ID는 `단계-영역번호`(예: `M1-D3`) — 요구사항 번호(`docs/spec/requirements.md`의 E·C·A)와 구분하려고 단계 접두를 붙인다. 기능이 바뀌면 같은 커밋에서 이 문서를 갱신한다. 검증 계층에서의 위치는 `.codex/skills/test-policy/SKILL.md`.
 
-- **자동**: Chromium Playwright 스크립트로 이미 돌린 항목. 사람은 Safari와 실제 입력기에서만 다시 본다.
+- **자동**: `pnpm e2e`(`apps/web/e2e/`, Chromium)가 같은 ID로 돌리는 항목. 사람은 Safari와 실제 입력기에서만 다시 본다.
 - **수동 전용**: 자동화로 재현할 수 없거나(실제 IME, 외부 앱 클립보드) 사람의 판단이 필요한(보기·느낌) 항목.
 - 단축키는 Mac 기준(⌘)이다. Windows·Linux에서는 Ctrl로 같은 결과가 나와야 한다.
 

@@ -104,7 +104,7 @@ Claude  → CLAUDE.md (symlink) → AGENTS.md → .claude/skills/<skill>/SKILL.m
 | 문서 | 필수 문서 존재, 에이전트용 문서 frontmatter(`title`, `kind`, `last_verified`; 산출 문서 `README.md`·`LLM_REPORT.md` 제외), 문서 안 인라인 코드 경로(`*.ts`, `*.tsx`, `*.md`, `*.sh`, `*.json`, `*.yaml`, `*.toml`)의 실제 존재 |
 | 진입점 | `CLAUDE.md → AGENTS.md` symlink, `.claude/skills/<n>/SKILL.md → .codex/skills/<n>/SKILL.md` symlink, skill frontmatter `name` 일치, 고아 symlink 없음 |
 | 계층 규칙 | core: UI·프레임워크 import와 브라우저 전역 금지, web 별칭 import 금지. `components/`·`stores/`: `yjs` import 금지. `collab/`·`ai/`: React·Zustand·styled-components 금지. `collab/` 밖 `BroadcastChannel`·`indexedDB` 금지. `app/api/`: 클라이언트 계층 import 금지 |
-| 테스트 배치 | 테스트 파일은 core에만, core 모듈마다 `<module>.test.ts` 존재 (진입 index·공유 types 파일 제외) |
+| 테스트 배치 | 단위 테스트는 core에만, core 모듈마다 `<module>.test.ts` 존재 (진입 index·공유 types 파일 제외). E2E `*.spec.ts`는 `apps/web/e2e/`에만 |
 | 비밀·개인정보 | `NEXT_PUBLIC_*KEY*`·`SECRET`·`TOKEN` 환경 변수 금지, 추적 파일에 `.env` 금지, 로컬 금칙어 목록 `.private-terms`(gitignore)의 단어가 추적 파일에 없는지 |
 
 검사는 grep 기반이다. 간접 참조, transaction 누락 같은 의미적 위반은 잡지 못한다 — 그것은 `TECH_RULES.md` 금지 표와 리뷰가 담당한다.
@@ -122,7 +122,6 @@ Claude  → CLAUDE.md (symlink) → AGENTS.md → .claude/skills/<skill>/SKILL.m
 | --- | --- | --- |
 | pre-commit hook | 구조 검사를 빼먹은 커밋이 두 번 이상 | 검사 강제 |
 | CI (test + typecheck + lint + check) | 원격 저장소에서 PR 리뷰 시작 | merge 전 기계 검사 |
-| Playwright 다중 탭 E2E | 수동 매트릭스가 10항목 초과 | 동기화 회귀 자동 검출 |
 | ADR | 같은 결정이 두 번 이상 번복 | 대안·rollback 조건 보존 |
 | 새 skill (예: 동기화 규약) | `TECH_RULES.md` 한 절이 절차를 포함할 만큼 커질 때 | 규약과 절차 분리 |
 

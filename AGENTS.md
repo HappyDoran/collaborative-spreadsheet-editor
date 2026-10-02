@@ -43,7 +43,7 @@ last_verified: 2026-10-02
 - 새 소유 문서는 현재 코드·검증 증거로 내용을 채울 수 있을 때만 만들고, 만들면 이 표에 한 줄 추가한다. TBD 자리 문서와 빈 디렉터리는 만들지 않는다.
 - 에이전트용 문서(루트 규범 문서, `docs/`)는 `title`, `kind`(`rule|design|guide|snapshot|history|spec`), `last_verified` frontmatter를 둔다. 사람이 읽는 산출 문서(`README.md`, `LLM_REPORT.md`)는 frontmatter를 두지 않는다.
 - skill은 `name`, `description` frontmatter로 `.codex/skills/<name>/SKILL.md`에 두고 `.claude/skills/<name>/SKILL.md`는 symlink만 둔다.
-- ADR·CI·PR 템플릿·E2E 테스트는 반복 비용이 생겼을 때 도입한다 (`docs/AI_AGENT_HARNESS.md` 확장 조건).
+- ADR·CI·PR 템플릿은 반복 비용이 생겼을 때 도입한다 (`docs/AI_AGENT_HARNESS.md` 확장 조건).
 
 ## 작업 유형별 필독
 

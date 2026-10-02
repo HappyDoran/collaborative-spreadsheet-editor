@@ -10,3 +10,5 @@ next-env.d.ts
 .DS_Store
 # 로컬 전용 금칙어 목록 (scripts/check-structure.sh가 읽는다)
 .private-terms
+test-results/
+playwright-report/

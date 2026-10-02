@@ -27,6 +27,7 @@ pnpm dev                # http://localhost:3000
 | `pnpm lint` | ESLint (Next 규칙) |
 | `pnpm build` | 프로덕션 빌드 |
 | `pnpm check` | 구조·문서 계약 검사 (`scripts/check-structure.sh`) |
+| `pnpm e2e` | Playwright E2E — 실제 Chromium에서 편집·여러 탭 공동 편집 시나리오. dev 서버(3100번 포트)를 스스로 띄운다. 처음 한 번 `pnpm --filter @sheet/web exec playwright install chromium` |
 
 검증 계층과 테스트 필수 대상은 `.codex/skills/test-policy/SKILL.md`.
 
@@ -45,6 +46,7 @@ pnpm dev                # http://localhost:3000
 | M1-A1·A6·A9·A10·A13 | Chrome | 2026-10-03 | 통과 — 사용자 직접 수동 확인 (재확인 순서 13~17) |
 | M1-C3 | `@sheet/core` Vitest | 2026-10-03 | 통과 — `pnpm test` 18/18, 혼합 서식 토글 포함 |
 | M2-N1·N2·N4·N5·N7, M2-C1·C2(값)·C3·C4·C5·C6·C7 | Chromium (Playwright, 두·세 탭) | 2026-10-03 | 통과 |
+| `pnpm e2e` 15건 — M1-A1·A2·A4·A6·B2·C1·D1·D3·E1·F1·G1(CDP), 외부 TSV, M2-N1·N2·N4·N5·N7·C1·C2·C3·C4·C5·C6·C7 | Chromium (`apps/web/e2e/`) | 2026-10-03 | 통과 (3회 연속) |
 | 그 밖의 M2 항목 | Chrome, Safari | — | 미검증 |
 
 ## 개발 방식

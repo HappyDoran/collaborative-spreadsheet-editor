@@ -46,6 +46,11 @@ last_verified: 2026-10-02
 │       └── participants.test.ts      # 빈 색만 고르기, 이름 공백·길이, 한글·이모지 첫 글자, 합류 순서 번호
 └── apps/web/                         # @sheet/web — Next.js 15.5 App Router
     ├── next.config.ts                # transpilePackages: @sheet/core, styled-components SWC
+    ├── playwright.config.ts          # E2E: Chromium, 3100번 포트 dev 서버, 테스트마다 새 컨텍스트
+    ├── e2e/
+    │   ├── sheet.ts                  # 공용 조작 (시트 열기·이름 지정·셀·이름 상자·아바타)
+    │   ├── editing.spec.ts           # M1 편집·선택·서식·클립보드·undo·한글·저장 7건
+    │   └── collaboration.spec.ts     # M2 이름 흐름·합류·실시간·동시 편집·목록·원격 표시·탭 종료·undo 범위 8건
     └── src/
         ├── app/
         │   ├── layout.tsx            # StyledRegistry로 감쌈

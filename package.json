@@ -12,6 +12,7 @@
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
     "lint": "pnpm -r lint",
-    "check": "scripts/check-structure.sh"
+    "check": "scripts/check-structure.sh",
+    "e2e": "pnpm --filter @sheet/web e2e"
   }
 }

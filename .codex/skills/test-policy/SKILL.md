@@ -1,6 +1,6 @@
 ---
 name: test-policy
-description: 코드를 변경하는 모든 작업에서 적용하는 검증 규칙. 단위 테스트·타입·린트·빌드·구조 검사·다중 탭 수동 매트릭스 중 무엇을 통과해야 완료인지 판정하고, 어떤 코드에 테스트가 필수인지 정한다.
+description: 코드를 변경하는 모든 작업에서 적용하는 검증 규칙. 단위 테스트·타입·린트·빌드·구조 검사·다중 탭 E2E·브라우저 수동 확인 중 무엇을 통과해야 완료인지 판정하고, 어떤 코드에 테스트가 필수인지 정한다.
 ---
 
 # 검증 정책
@@ -16,13 +16,15 @@ description: 코드를 변경하는 모든 작업에서 적용하는 검증 규�
 | 린트 | React hooks 규칙, Next 규칙 | `pnpm lint` | web 변경 |
 | 빌드 | 서버·클라이언트 경계, 라우트 설정 | `pnpm build` | 라우트·설정·의존성 변경, 배포 전 |
 | 구조 검사 | 계층 import 규칙, 테스트 배치, 문서 symlink·경로·frontmatter, 비밀·금칙어 | `pnpm check` | 모든 변경 |
-| 브라우저 수동 | 탭 간 동기화, awareness 표시·정리, 새로고침 영속, AI 스트리밍·취소, 실제 한글 입력기, 외부 앱 클립보드, Safari | 절차 `docs/manual-scenarios.md`, 결과 `README.md` 수동 매트릭스 | 런타임 동작 변경 |
+| E2E (Playwright, Chromium) | 실제 브라우저의 키보드·클립보드 동작, 같은 브라우저 여러 탭의 동기화·참여자 표시·탭 종료·undo 범위 | `pnpm e2e` | 런타임 동작 변경 |
+| 브라우저 수동 | E2E로 재현할 수 없는 것 — 실제 한글 입력기, 외부 앱 클립보드, Safari, 보기·느낌 | 절차 `docs/manual-scenarios.md`, 결과 `README.md` 수동 매트릭스 | 런타임 동작 변경 |
 
 ## 테스트 위치와 범위
 
-- 대상은 `packages/sheet-core/`만. 파일은 대상 옆 `<module>.test.ts`.
+- 단위 테스트 대상은 `packages/sheet-core/`만. 파일은 대상 옆 `<module>.test.ts`.
+- E2E는 `apps/web/e2e/<영역>.spec.ts`. 테스트 이름은 `docs/manual-scenarios.md`의 시나리오 ID로 시작한다 — 수동 시나리오 중 자동화된 것을 ID로 추적한다. 테스트마다 새 브라우저 컨텍스트(빈 저장소)이고, 같은 컨텍스트의 페이지 여러 개가 "같은 브라우저의 탭"이다. 공용 조작은 `apps/web/e2e/sheet.ts`.
 - 탭 간 시나리오의 문서 수준 동작은 단위 테스트로 재현한다 — `Y.Doc` 두 개를 만들고 `Y.encodeStateAsUpdate`/`Y.applyUpdate`로 update를 교환하면 브라우저 없이 "두 탭"이 된다. 원격 update에 별도 origin을 붙여 undo 범위를 검증한다.
-- 컴포넌트·hooks·collab의 브라우저 결합부는 단위 테스트하지 않는다. 다중 탭 수동 매트릭스로 본다. 전환 조건은 아래 확장 조건.
+- 컴포넌트·hooks·collab의 브라우저 결합부는 단위 테스트하지 않는다. E2E와 수동 확인으로 본다.
 
 ## 판정 기준: 테스트가 필수인 코드
 
@@ -48,11 +50,14 @@ description: 코드를 변경하는 모든 작업에서 적용하는 검증 규�
 
 | 후보 | 도입 조건 |
 | --- | --- |
-| hooks·store 테스트 (jsdom) | 같은 회귀가 수동 매트릭스에서 두 번 이상 발견 |
-| Playwright 다중 탭 E2E | 수동 매트릭스가 10항목을 넘어 매 변경마다 돌리기 어려워질 때 |
+| hooks·store 테스트 (jsdom) | 같은 회귀가 E2E·수동에서 두 번 이상 발견 |
+| E2E WebKit 프로젝트 | Safari 전용 결함이 수동 확인에서 나올 때 (`playwright install webkit` 필요) |
+
+Playwright 다중 탭 E2E는 수동 매트릭스가 10항목을 넘은 시점(M2)에 도입했다.
 
 ## 완료 조건
 
-- `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm check` 통과. 라우트·설정·의존성 변경이면 `pnpm build`도.
+- `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm check` 통과. 런타임 동작이 바뀌면 `pnpm e2e`, 라우트·설정·의존성 변경이면 `pnpm build`도.
+- 사용자에게 보이는 동작을 바꾸면 `docs/manual-scenarios.md`에 시나리오를 추가하고, 자동화할 수 있으면 같은 ID로 E2E를 둔다.
 - 런타임 동작이 바뀌었으면 `시나리오 × 탭 수 × 결과` 표를 커밋 본문 또는 완료 보고에 남긴다. 브라우저에서 확인하지 못했으면 "미검증"으로 적는다.
 - 완료 보고에 추가·수정한 테스트 파일과 케이스 수를 포함한다.

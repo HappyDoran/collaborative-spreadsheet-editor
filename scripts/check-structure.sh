@@ -61,7 +61,8 @@ check_absent "$WEB/app/api"       "$IMPORT@/(components|stores|collab|hooks)"   
   | grep -v "^$WEB/collab/" | while read -r f; do err "collab 밖에서 전송·영속 API 사용: $f"; done
 
 # 5. 테스트 배치: 테스트는 core에만, core 모듈마다 <module>.test.ts
-find apps -name '*.test.ts*' -not -path '*/node_modules/*' | while read -r f; do err "테스트는 core에만 둔다: $f"; done
+find apps -name '*.test.ts*' -not -path '*/node_modules/*' | while read -r f; do err "단위 테스트는 core에만 둔다: $f"; done
+find . -name '*.spec.ts' -not -path '*/node_modules/*' -not -path './apps/web/e2e/*' | while read -r f; do err "E2E는 apps/web/e2e/에만 둔다: $f"; done
 find "$CORE" -name '*.ts' -not -name '*.test.ts' -not -name 'index.ts' -not -name 'types.ts' | while read -r f; do
   [ -f "${f%.ts}.test.ts" ] || err "core 모듈 테스트 없음: ${f%.ts}.test.ts"
 done

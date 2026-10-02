@@ -25,6 +25,7 @@
 | 참여자 이름 흐름 (첫 접속 이름 지정, `localStorage` 저장, 헤더 아바타에서 수정·삭제, 아바타 색 = 셀 포인터 색, 10색 무작위), 전송 방식(BroadcastChannel) | 사람 결정 | 이름 지정 흐름과 저장 위치·UI는 사람이 정의. 전송 방식은 LLM이 대안 3개를 비교해 추천, 사람이 채택 |
 | `apps/web/src/collab/broadcastProvider.ts`, `sheetSession.ts` | LLM 생성 | 합류 인사(state vector), awareness 중계, `pagehide` 제거. 두·세 탭 시나리오로 C1~C7 확인 |
 | `packages/sheet-core/src/participants.ts`, 참여자 UI(`ParticipantMenu`, `NameDialog`, `RemoteCursors`), `identityStore`, `usePresence` | LLM 생성 | 팔레트 10색은 LLM이 흰 글자 대비 4.5:1 기준으로 선정. 탭 공유 이름 충돌 보완(사례 7), 동명이인 순서 결함 수정(사례 6) |
+| E2E (`apps/web/e2e/`, `playwright.config.ts`) | 사람 결정 + LLM 생성 | 도입 시점(1번 작업 후)은 사람 결정. 시나리오는 수동 시나리오 ID를 그대로 테스트 이름으로 써 추적. 테스트마다 새 컨텍스트로 격리 |
 
 ## 3. 이슈와 해결 과정 (LLM 오류·기각·수정 사례 포함)
 
