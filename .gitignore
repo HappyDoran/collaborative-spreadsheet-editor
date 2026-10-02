@@ -1,0 +1,12 @@
+node_modules/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+.env*
+!.env.example
+.vercel
+.DS_Store
+# 로컬 전용 금칙어 목록 (scripts/check-structure.sh가 읽는다)
+.private-terms
