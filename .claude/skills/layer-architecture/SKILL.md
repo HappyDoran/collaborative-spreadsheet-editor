@@ -1,0 +1,1 @@
+../../../.codex/skills/layer-architecture/SKILL.md
