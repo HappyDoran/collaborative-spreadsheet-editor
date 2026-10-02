@@ -1,7 +1,7 @@
 "use client";
 
-import { labelParticipants, pickColor, type PresenceState } from "@sheet/core";
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { pickColor, type PresenceState } from "@sheet/core";
+import { useEffect, useMemo, useSyncExternalStore } from "react";
 import type { Awareness } from "y-protocols/awareness";
 import { useColorStore } from "@/stores/identityStore";
 import { useSelectionStore } from "@/stores/selectionStore";
@@ -11,7 +11,6 @@ const COLOR_PICK_DELAY_MS = 150;
 
 // 내 이름·색·선택을 awareness로 알린다. 이름이 없으면 목록에서 빠진다.
 export function usePresence(awareness: Awareness, name: string | null, color: string | null) {
-  const [joinedAt] = useState(Date.now); // 이 탭이 시트에 들어온 시각 — 동명이인 번호 순서
   useEffect(() => {
     if (color) return;
     const timer = setTimeout(() => {
@@ -31,18 +30,18 @@ export function usePresence(awareness: Awareness, name: string | null, color: st
       extent: s.extent,
       editing: s.mode !== "idle",
     });
-    const state: PresenceState = { user: { name, color, joinedAt }, cursor: cursorOf(useSelectionStore.getState()) };
+    const state: PresenceState = { user: { name, color }, cursor: cursorOf(useSelectionStore.getState()) };
     awareness.setLocalState(state);
     return useSelectionStore.subscribe((s, prev) => {
       if (s.active === prev.active && s.extent === prev.extent && (s.mode === "idle") === (prev.mode === "idle")) return;
       awareness.setLocalStateField("cursor", cursorOf(s));
     });
-  }, [awareness, name, color, joinedAt]);
+  }, [awareness, name, color]);
 }
 
 const NO_PARTICIPANTS: Participant[] = [];
 
-export type Participant = PresenceState & { clientId: number; isSelf: boolean; label: string };
+export type Participant = PresenceState & { clientId: number; isSelf: boolean };
 
 function othersOf(awareness: Awareness): [number, PresenceState][] {
   return [...awareness.getStates()].filter(
@@ -50,25 +49,22 @@ function othersOf(awareness: Awareness): [number, PresenceState][] {
   );
 }
 
-// 접속 중인 참여자 목록 (나 포함). 같은 이름은 "이름 2"로 구분한다.
+// 접속 중인 참여자 목록 (나 먼저). 같은 이름도 그대로 둔다 — 탭마다 다른 색이 구분한다.
 export function useParticipants(awareness: Awareness): Participant[] {
   const store = useMemo(() => {
     let snapshot: Participant[] = [];
     const compute = () => {
-      const list = [...awareness.getStates()]
+      snapshot = [...awareness.getStates()]
         .filter((entry): entry is [number, PresenceState] => !!entry[1]?.user)
-        .map(([clientId, s]) => ({
-          ...s,
-          clientId,
-          name: s.user.name,
-          joinedAt: s.user.joinedAt,
-          isSelf: clientId === awareness.clientID,
-        }));
-      snapshot = labelParticipants(list).sort((a, b) => Number(b.isSelf) - Number(a.isSelf) || a.clientId - b.clientId);
+        .map(([clientId, s]) => ({ ...s, clientId, isSelf: clientId === awareness.clientID }))
+        .sort((a, b) => Number(b.isSelf) - Number(a.isSelf) || a.clientId - b.clientId);
     };
     compute();
     return {
       subscribe(onChange: () => void) {
+        // 구독 전에 일어난 변경(새로고침 직후 저장된 이름으로 바로 합류)도 놓치지 않게 지금 상태로 다시 계산한다.
+        // React는 구독 직후 getSnapshot을 다시 비교하므로 바뀐 목록이 그려진다.
+        compute();
         const handler = () => {
           compute();
           onChange();

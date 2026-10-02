@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PARTICIPANT_COLORS, initialOf, labelParticipants, normalizeName, pickColor } from "./participants";
+import { PARTICIPANT_COLORS, initialOf, normalizeName, pickColor } from "./participants";
 
 describe("participants", () => {
   it("팔레트는 서로 다른 10색", () => {
@@ -25,22 +25,5 @@ describe("participants", () => {
     expect(initialOf("서연")).toBe("서");
     expect(initialOf("alex")).toBe("A");
     expect(initialOf("🐳 whale")).toBe("🐳");
-  });
-
-  it("같은 이름은 합류 시각 순서대로 번호를 붙이고(clientId 무관), 입력 순서는 유지한다", () => {
-    const out = labelParticipants([
-      { clientId: 1, name: "민지", joinedAt: 300 },
-      { clientId: 99, name: "민지", joinedAt: 100 },
-      { clientId: 50, name: "준", joinedAt: 200 },
-    ]);
-    expect(out.map((p) => p.label)).toEqual(["민지 2", "민지", "준"]);
-  });
-
-  it("합류 시각이 같으면 clientId로 순서를 정한다", () => {
-    const out = labelParticipants([
-      { clientId: 7, name: "민지", joinedAt: 100 },
-      { clientId: 3, name: "민지", joinedAt: 100 },
-    ]);
-    expect(out.map((p) => p.label)).toEqual(["민지 2", "민지"]);
   });
 });

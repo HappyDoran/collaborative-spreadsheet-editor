@@ -35,7 +35,8 @@ last_verified: 2026-10-02
 | 공유 + 영속 | `Y.Doc` | 셀 값, 셀 서식 |
 | 공유 + 일시 (탭이 닫히면 사라짐) | Yjs awareness | 참여자 이름·색, 선택 범위, 편집 중 셀, AI 생성·검토 중 범위 |
 | 로컬 + 일시 | Zustand store | 내 선택 앵커, 편집 초안, AI 패널 UI, 내 AI 제안의 진행 상태 |
-| 로컬 + 반영구 | Zustand `persist` — 이름은 `localStorage`(브라우저 단위), 색은 `sessionStorage`(탭 단위) | 내 참여자 이름·색 (`apps/web/src/stores/identityStore.ts`) |
+| 탭 단위 + 새로고침 유지 | Zustand `persist` + `sessionStorage` | 내 참여자 이름·색 (`apps/web/src/stores/identityStore.ts`) |
+| 브라우저 단위 + 반영구 | `localStorage` | 마지막에 쓴 이름 — 새 탭 이름 입력의 기본값일 뿐, 참여자 상태가 아니다 |
 
 - 셀 데이터는 `Y.Doc`가 유일한 진실이다. Zustand에 셀 값을 복제하지 않는다 — React는 `Y.Doc` 구독으로 렌더한다.
 - 다른 참여자에게 보여야 하는 일시 상태는 Zustand가 아니라 awareness에 둔다. awareness는 탭 종료 시 정리되어 요구사항 C6을 만족한다.

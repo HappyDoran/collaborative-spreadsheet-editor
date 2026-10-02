@@ -4,10 +4,11 @@ import { NAME_MAX_LENGTH, normalizeName } from "@sheet/core";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 
-// 처음 접속했을 때 이름을 정한다. 이름 없이 시트를 쓸 수 없으므로 Esc로 닫히지 않는다.
-export function NameDialog({ onSubmit }: { onSubmit: (name: string) => void }) {
+// 탭이 처음 시트에 들어올 때 이름을 정한다 (탭 = 참여자). 마지막에 쓴 이름을 미리 채워 Enter 한 번이면 된다.
+// 이름 없이 시트를 쓸 수 없으므로 Esc로 닫히지 않는다.
+export function NameDialog({ defaultName, onSubmit }: { defaultName: string; onSubmit: (name: string) => void }) {
   const ref = useRef<HTMLDialogElement>(null);
-  const [value, setValue] = useState("");
+  const [value, setValue] = useState(defaultName);
   const [error, setError] = useState(false);
 
   useEffect(() => {
@@ -25,9 +26,10 @@ export function NameDialog({ onSubmit }: { onSubmit: (name: string) => void }) {
         }}
       >
         <Heading id="name-dialog-title">함께 편집할 이름</Heading>
-        <Help>다른 참여자에게 이 이름과 색으로 보여요. 오른쪽 위에서 언제든 바꿀 수 있어요.</Help>
+        <Help>이 탭에서 다른 참여자에게 보일 이름이에요. 오른쪽 위에서 언제든 바꿀 수 있어요.</Help>
         <Input
           autoFocus
+          onFocus={(e) => e.currentTarget.select()}
           aria-label="이름"
           aria-invalid={error}
           aria-describedby={error ? "name-dialog-error" : undefined}

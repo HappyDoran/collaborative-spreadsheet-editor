@@ -26,7 +26,7 @@ export function ParticipantMenu({ participants, onRename, onClearName }: Props) 
     <Wrapper>
       <Stack aria-hidden>
         {others.slice(0, STACK_LIMIT).map((p) => (
-          <Avatar key={p.clientId} title={p.label} style={{ background: p.user.color }}>
+          <Avatar key={p.clientId} title={p.user.name} style={{ background: p.user.color }}>
             {initialOf(p.user.name)}
           </Avatar>
         ))}
@@ -35,8 +35,8 @@ export function ParticipantMenu({ participants, onRename, onClearName }: Props) 
       <MeButton
         type="button"
         popoverTarget="participant-panel"
-        aria-label={`${me.label}(나) — 접속 중 ${participants.length}명, 이름 설정`}
-        title={`${me.label}(나)`}
+        aria-label={`${me.user.name}(나) — 접속 중 ${participants.length}명, 이름 설정`}
+        title={`${me.user.name}(나)`}
         style={{ background: me.user.color }}
       >
         {initialOf(me.user.name)}
@@ -51,7 +51,7 @@ export function ParticipantMenu({ participants, onRename, onClearName }: Props) 
                 {initialOf(p.user.name)}
               </Avatar>
               <Name>
-                {p.label}
+                {p.user.name}
                 {p.isSelf && <Muted> (나)</Muted>}
               </Name>
               {p.cursor && (

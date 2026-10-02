@@ -7,7 +7,7 @@ import { useIdentity } from "@/hooks/useIdentity";
 import { usePresence, useParticipants } from "@/hooks/usePresence";
 import { useSheet, type SheetActions } from "@/hooks/useSheet";
 import { useSheetCommands } from "@/hooks/useSheetCommands";
-import { useNameStore } from "@/stores/identityStore";
+import { readLastName, useNameStore } from "@/stores/identityStore";
 import { useSelectionStore } from "@/stores/selectionStore";
 import { FormulaBar } from "./FormulaBar";
 import { Grid } from "./Grid";
@@ -33,7 +33,7 @@ export function SheetApp() {
       ) : (
         <Editor {...sheet} name={name} color={color} />
       )}
-      {hydrated && !name && <NameDialog onSubmit={useNameStore.getState().setName} />}
+      {hydrated && !name && <NameDialog defaultName={readLastName()} onSubmit={useNameStore.getState().setName} />}
     </Shell>
   );
 }

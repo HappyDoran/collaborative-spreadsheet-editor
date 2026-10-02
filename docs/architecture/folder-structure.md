@@ -42,15 +42,15 @@ last_verified: 2026-10-02
 │       ├── sheet.test.ts             # 빈 셀 정리, 서식 토글, 붙여넣기 채우기·잘림, undo 단위, 두 탭 undo·동시 병합
 │       ├── clipboard.ts              # TSV 직렬화·파싱(따옴표 규칙), 서식 HTML 표 생성
 │       ├── clipboard.test.ts         # CRLF, 따옴표 안 탭·줄바꿈, HTML 이스케이프
-│       ├── participants.ts           # 10색 팔레트, 빈 색 고르기, 이름 정규화·첫 글자, 동명이인 번호, awareness 상태 타입
-│       └── participants.test.ts      # 빈 색만 고르기, 이름 공백·길이, 한글·이모지 첫 글자, 합류 순서 번호
+│       ├── participants.ts           # 10색 팔레트, 빈 색 고르기, 이름 정규화·첫 글자, awareness 상태 타입
+│       └── participants.test.ts      # 빈 색만 고르기, 이름 공백·길이, 한글·이모지 첫 글자
 └── apps/web/                         # @sheet/web — Next.js 15.5 App Router
     ├── next.config.ts                # transpilePackages: @sheet/core, styled-components SWC
     ├── playwright.config.ts          # E2E: Chromium, 3100번 포트 dev 서버, 테스트마다 새 컨텍스트
     ├── e2e/
     │   ├── sheet.ts                  # 공용 조작 (시트 열기·이름 지정·셀·이름 상자·아바타)
     │   ├── editing.spec.ts           # M1 편집·선택·서식·클립보드·undo·한글·저장 7건
-    │   └── collaboration.spec.ts     # M2 이름 흐름·합류·실시간·동시 편집·목록·원격 표시·탭 종료·undo 범위 8건
+    │   └── collaboration.spec.ts     # M2 탭별 이름·새로고침 유지·합류·실시간·동시 편집·목록·원격 표시·탭 종료·undo 범위 9건
     └── src/
         ├── app/
         │   ├── layout.tsx            # StyledRegistry로 감쌈
@@ -61,7 +61,7 @@ last_verified: 2026-10-02
         │   └── broadcastProvider.ts  # BroadcastChannel: 문서·awareness update, 합류 인사, 탭 종료 시 제거
         ├── stores/
         │   ├── selectionStore.ts     # 셀 포인터·범위, 준비/입력/편집 모드, 초안, Tab 시작 열, 복사 표시
-        │   └── identityStore.ts      # 이름(localStorage)·색(sessionStorage), 탭 간 이름 동기화
+        │   └── identityStore.ts      # 이름·색(탭 단위 sessionStorage), 마지막 이름(localStorage, 새 탭 기본값)
         ├── hooks/
         │   ├── useSheet.ts           # 세션 수명, UndoManager, 문서 변경 구독(version), 시트 연산 묶음
         │   ├── useSheetCommands.ts   # 엑셀 키맵·확정·취소·복사/잘라내기/붙여넣기, 클립보드 HTML 표 읽기

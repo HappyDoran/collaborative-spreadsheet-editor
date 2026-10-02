@@ -45,8 +45,7 @@ pnpm dev                # http://localhost:3000
 | M1-A4·A5·A8, M1-B2, M1-D5·D6·D7·D8·D9, M1-E6, M1-H3·H4 | Safari, Chrome | 2026-10-03 | 통과 — 사용자 직접 수동 확인 (재확인 순서 1~12) |
 | M1-A1·A6·A9·A10·A13 | Chrome | 2026-10-03 | 통과 — 사용자 직접 수동 확인 (재확인 순서 13~17) |
 | M1-C3 | `@sheet/core` Vitest | 2026-10-03 | 통과 — `pnpm test` 18/18, 혼합 서식 토글 포함 |
-| M2-N1·N2·N4·N5·N7, M2-C1·C2(값)·C3·C4·C5·C6·C7 | Chromium (Playwright, 두·세 탭) | 2026-10-03 | 통과 |
-| `pnpm e2e` 15건 — M1-A1·A2·A4·A6·B2·C1·D1·D3·E1·F1·G1(CDP), 외부 TSV, M2-N1·N2·N4·N5·N7·C1·C2·C3·C4·C5·C6·C7 | Chromium (`apps/web/e2e/`) | 2026-10-03 | 통과 (3회 연속) |
+| `pnpm e2e` 16건 — M1-A1·A2·A4·A6·B2·C1·D1·D3·E1·F1·G1(CDP), 외부 TSV, M2-N1·N2·N3·N4·N5·N7·C1·C2·C3·C4·C5·C6·C7 (탭 단위 이름 개정 반영) | Chromium (`apps/web/e2e/`) | 2026-10-03 | 통과 (전체 3회 + 공동 편집 3회 반복) |
 | 그 밖의 M2 항목 | Chrome, Safari | — | 미검증 |
 
 ## 개발 방식

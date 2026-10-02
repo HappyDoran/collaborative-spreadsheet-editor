@@ -18,7 +18,7 @@ export const NAME_MAX_LENGTH = 20;
 
 // awareness로 다른 탭에 알리는 내 상태
 export type PresenceState = {
-  user: { name: string; color: string; joinedAt: number }; // joinedAt: 이 탭이 합류한 시각(ms)
+  user: { name: string; color: string };
   cursor: { active: CellAddress; extent: CellAddress; editing: boolean } | null;
 };
 
@@ -39,19 +39,4 @@ export function normalizeName(input: string): string | null {
 // 아바타에 넣을 첫 글자. 한글·이모지도 한 글자로 자른다.
 export function initialOf(name: string): string {
   return (Array.from(name.trim())[0] ?? "?").toUpperCase();
-}
-
-// 같은 이름이 여럿이면 합류 순서대로 "이름 2", "이름 3"을 붙인다. 모든 탭에서 같은 번호가 나온다.
-// Yjs clientID는 무작위라 순서로 쓸 수 없다 — 합류 시각으로 정렬하고, 같으면 clientId로 끊는다.
-export function labelParticipants<T extends { clientId: number; name: string; joinedAt: number }>(
-  list: T[],
-): (T & { label: string })[] {
-  const seen = new Map<string, number>();
-  const labels = new Map<number, string>();
-  for (const p of [...list].sort((a, b) => a.joinedAt - b.joinedAt || a.clientId - b.clientId)) {
-    const n = (seen.get(p.name) ?? 0) + 1;
-    seen.set(p.name, n);
-    labels.set(p.clientId, n === 1 ? p.name : `${p.name} ${n}`);
-  }
-  return list.map((p) => ({ ...p, label: labels.get(p.clientId)! }));
 }
