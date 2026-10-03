@@ -203,3 +203,17 @@ test("M2-C11 가려져 타이머가 늦춰진 탭도 다른 탭의 목록에서 
     await expect(myAvatar(visible)).toHaveAttribute("aria-label", /접속 중 2명/);
   }
 });
+
+test("M2-N9 [새 탭에서 함께 편집]은 이름·색을 복사하지 않은 새 참여자 탭을 연다", async ({ context }) => {
+  const a = await openSheet(context, "민지");
+  const opened = context.waitForEvent("page");
+  await a.getByRole("link", { name: "새 탭에서 함께 편집" }).click();
+  const b = await opened;
+  const dialog = nameDialog(b);
+  await expect(dialog).toBeVisible(); // 같은 참여자로 이어지지 않고 이름부터 정한다
+  await dialog.getByLabel("이름").fill("준호");
+  await dialog.getByRole("button", { name: "시작하기" }).click();
+  await expect(myAvatar(a)).toHaveAttribute("aria-label", /접속 중 2명/);
+  await expect(myAvatar(b)).toHaveAttribute("aria-label", /^준호/);
+  await expect(a.getByRole("link", { name: "새 탭 열기" })).toBeVisible();
+});

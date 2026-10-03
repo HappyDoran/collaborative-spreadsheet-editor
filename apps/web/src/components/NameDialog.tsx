@@ -26,7 +26,10 @@ export function NameDialog({ defaultName, onSubmit }: { defaultName: string; onS
         }}
       >
         <Heading id="name-dialog-title">함께 편집할 이름</Heading>
-        <Help>이 탭에서 다른 참여자에게 보일 이름이에요. 오른쪽 위에서 언제든 바꿀 수 있어요.</Help>
+        <Help>
+          이 탭에서 다른 참여자에게 보일 이름이에요. 오른쪽 위에서 언제든 바꿀 수 있어요. 같은 브라우저에서 이 주소를 새
+          탭으로 열면 그 탭은 다른 참여자가 되어 함께 편집해요.
+        </Help>
         <Input
           autoFocus
           onFocus={(e) => e.currentTarget.select()}

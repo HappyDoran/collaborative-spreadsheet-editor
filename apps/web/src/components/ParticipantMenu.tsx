@@ -24,6 +24,10 @@ export function ParticipantMenu({ participants, onRename, onClearName }: Props) 
 
   return (
     <Wrapper>
+      {/* 탭 = 참여자. noopener: 새 탭이 이 탭의 sessionStorage(이름·색·AI 초안)를 복사하지 않고 새 참여자로 시작한다 */}
+      <InviteLink href="" target="_blank" rel="noopener" title="같은 브라우저의 새 탭은 다른 참여자가 돼요">
+        {others.length ? "새 탭 열기" : "새 탭에서 함께 편집"}
+      </InviteLink>
       <Stack aria-hidden>
         {others.slice(0, STACK_LIMIT).map((p) => (
           <Avatar key={p.clientId} title={p.user.name} style={{ background: p.user.color }}>
@@ -115,6 +119,25 @@ const Wrapper = styled.div`
   align-items: center;
   gap: 8px;
   margin-left: auto;
+`;
+
+const InviteLink = styled.a`
+  padding: 5px 10px;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  color: var(--ink);
+  font-size: 12px;
+  text-decoration: none;
+  white-space: nowrap;
+
+  &:hover {
+    background: var(--header);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
 `;
 
 const Stack = styled.div`
