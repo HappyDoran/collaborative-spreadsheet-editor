@@ -222,33 +222,39 @@ export function useSheetCommands(actions: SheetActions) {
 
 export type SheetCommands = ReturnType<typeof useSheetCommands>;
 
-// HTML 표가 있으면 서식까지, 없으면 탭 구분 텍스트로
+// HTML 표가 있으면 서식까지, 없으면 탭 구분 텍스트로.
+// 구글 시트는 셀 하나를 복사하면 표 없이 글자 조각(<span data-sheets-root>)만 담는다 —
+// 붙일 값이 하나면 그 조각의 서식을 값에 입힌다. 값은 텍스트에서 가져와 내용은 바뀌지 않는다.
 function gridFromClipboard(html: string, text: string): CellData[][] {
-  return tableFromHTML(html) ?? parseTSV(text).map((row) => row.map((value) => ({ value })));
+  const parsed = html ? parseClipboardHTML(html) : null;
+  const table = parsed?.doc.querySelector("table");
+  if (parsed && table) return tableGrid(table, parsed.formatsOf);
+  const grid: CellData[][] = parseTSV(text).map((row) => row.map((value) => ({ value })));
+  if (parsed && grid.length === 1 && grid[0]!.length === 1) Object.assign(grid[0]![0]!, parsed.formatsOf(parsed.doc.body));
+  return grid;
 }
 
-// 클립보드 HTML의 첫 표를 읽는다. 서식은 칸과 그 안 글자 조각의 style 속성(구글 시트·이 앱),
-// <style> 클래스 규칙(Excel), b/i/u 태그를 모두 본다 — 판정은 core의 formatsFromStyle.
-// 표가 없으면(일반 웹 글 복사 등) null — 호출자가 텍스트로 대신 읽는다.
-function tableFromHTML(html: string): CellData[][] | null {
-  if (!html) return null;
+const FORMAT_TAGS: Record<CellFormat, string> = { bold: "b, strong", italic: "i, em", underline: "u" };
+
+// 서식은 요소와 그 안 글자 조각의 style 속성(구글 시트·이 앱), <style> 클래스 규칙(Excel), b/i/u 태그를 모두 본다.
+// 판정은 core의 formatsFromStyle.
+function parseClipboardHTML(html: string) {
   const doc = new DOMParser().parseFromString(html, "text/html");
-  const table = doc.querySelector("table");
-  if (!table) return null;
   const classes = cssClassRules(Array.from(doc.querySelectorAll("style"), (el) => el.textContent ?? "").join("\n"));
   const declsOf = (el: Element) =>
     [...el.classList].map((c) => classes.get(c) ?? "").join(";") + ";" + (el.getAttribute("style") ?? "");
-  const TAGS: Record<CellFormat, string> = { bold: "b, strong", italic: "i, em", underline: "u" };
+  const formatsOf = (root: Element): Partial<Record<CellFormat, true>> => {
+    const formats = formatsFromStyle([root, ...root.querySelectorAll("*")].map(declsOf).join(";"));
+    for (const [format, tags] of Object.entries(FORMAT_TAGS) as [CellFormat, string][]) {
+      if (root.querySelector(tags)) formats[format] = true;
+    }
+    return formats;
+  };
+  return { doc, formatsOf };
+}
 
-  const grid = Array.from(table.rows, (tr) =>
-    Array.from(tr.cells, (td): CellData => {
-      const decls = [td, ...td.querySelectorAll("*")].map(declsOf).join(";");
-      const cell: CellData = { value: td.textContent ?? "", ...formatsFromStyle(decls) };
-      for (const [format, tags] of Object.entries(TAGS) as [CellFormat, string][]) {
-        if (td.querySelector(tags)) cell[format] = true;
-      }
-      return cell;
-    }),
+function tableGrid(table: HTMLTableElement, formatsOf: (el: Element) => Partial<Record<CellFormat, true>>) {
+  return Array.from(table.rows, (tr) =>
+    Array.from(tr.cells, (td): CellData => ({ value: td.textContent ?? "", ...formatsOf(td) })),
   );
-  return grid.length ? grid : null;
 }

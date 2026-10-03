@@ -127,6 +127,20 @@ async function pasteHTML(page: import("@playwright/test").Page, html: string, te
   await page.keyboard.press(`${MOD}+v`);
 }
 
+// 구글 시트에서 셀 하나를 복사했을 때 실제로 담기는 HTML (표 없이 span 하나 — 2026-10-03 클립보드에서 채취)
+const SHEETS_SINGLE_CELL_HTML =
+  "<meta charset='utf-8'><style type=\"text/css\"><!--td {border: 1px solid #cccccc;}br {mso-data-placement:same-cell;}--></style>" +
+  '<span style="font-size:9pt;font-family:Arial;font-weight:bold;font-style:normal;text-align:center;" data-sheets-root="1">알아둘것</span>';
+
+test("M1-D7b 구글 시트에서 셀 하나를 복사하면 표 없이 오는 서식도 살린다", async ({ context }) => {
+  const page = await openSheet(context);
+  await cell(page, 0, 0).click();
+  await pasteHTML(page, SHEETS_SINGLE_CELL_HTML, "알아둘것");
+  await expect(cell(page, 0, 0)).toHaveText("알아둘것");
+  await expect(cell(page, 0, 0)).toHaveCSS("font-weight", "700");
+  await expect(cell(page, 0, 0)).toHaveCSS("font-style", "normal");
+});
+
 test("M1-D7 Excel의 클래스 규칙 서식, 구글 시트의 글자 조각 서식을 붙여넣기에서 살린다", async ({ context }) => {
   const page = await openSheet(context);
   await cell(page, 0, 0).click();
