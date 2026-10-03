@@ -65,6 +65,13 @@ export function clearValues(doc: Y.Doc, range: CellRange, origin: unknown): void
   doc.transact(() => forEachAddress(range, (addr) => patchCell(cells, addr, { value: "" })), origin);
 }
 
+// 서식만 지우고 값은 남긴다 (엑셀·시트의 "서식 지우기").
+export function clearFormats(doc: Y.Doc, range: CellRange, origin: unknown): void {
+  const cells = getCells(doc);
+  const off = Object.fromEntries(FORMATS.map((f) => [f, false]));
+  doc.transact(() => forEachAddress(range, (addr) => patchCell(cells, addr, off)), origin);
+}
+
 // 범위가 전부 켜져 있으면 끄고, 아니면 전부 켠다 (엑셀 동작).
 export function toggleFormat(doc: Y.Doc, range: CellRange, format: CellFormat, origin: unknown): void {
   let allOn = true;
@@ -85,9 +92,18 @@ export function readGrid(doc: Y.Doc, range: CellRange): CellData[][] {
   return grid;
 }
 
+// 선택하여 붙여넣기 (DESIGN.md 14절): 전부 / 값만 / 서식만
+export type PasteMode = "all" | "values" | "formats";
+
 // 붙여넣기. 값 하나를 범위에 붙이면 범위를 채우고, 그 외에는 target 좌상단부터 쓰고 시트 밖은 버린다.
-// 서식은 원본 그대로 덮어쓴다 (원본에 없으면 끈다). 쓴 범위를 돌려준다.
-export function writeGrid(doc: Y.Doc, target: CellRange, grid: CellData[][], origin: unknown): CellRange | null {
+// 서식은 원본 그대로 덮어쓴다 (원본에 없으면 끈다). mode로 값만·서식만 고를 수 있다. 쓴 범위를 돌려준다.
+export function writeGrid(
+  doc: Y.Doc,
+  target: CellRange,
+  grid: CellData[][],
+  origin: unknown,
+  mode: PasteMode = "all",
+): CellRange | null {
   const first = grid[0]?.[0];
   if (!first) return null;
   const single = grid.length === 1 && grid[0]!.length === 1;
@@ -103,7 +119,10 @@ export function writeGrid(doc: Y.Doc, target: CellRange, grid: CellData[][], ori
     forEachAddress(written, (addr) => {
       const src = single ? first : grid[addr.row - target.start.row]?.[addr.col - target.start.col];
       const cell = src ?? { value: "" };
-      patchCell(cells, addr, { value: cell.value, bold: !!cell.bold, italic: !!cell.italic, underline: !!cell.underline });
+      const formats = { bold: !!cell.bold, italic: !!cell.italic, underline: !!cell.underline };
+      if (mode === "values") patchCell(cells, addr, { value: cell.value });
+      else if (mode === "formats") patchCell(cells, addr, formats);
+      else patchCell(cells, addr, { value: cell.value, ...formats });
     });
   }, origin);
   return written;

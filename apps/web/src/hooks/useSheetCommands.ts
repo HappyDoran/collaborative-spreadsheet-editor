@@ -1,6 +1,6 @@
 "use client";
 
-import { FORMATS, parseTSV, toHTML, toTSV, type CellData, type CellFormat } from "@sheet/core";
+import { FORMATS, parseTSV, toHTML, toTSV, type CellData, type CellFormat, type PasteMode } from "@sheet/core";
 import { useMemo, type ClipboardEvent, type KeyboardEvent } from "react";
 import { selectedRange, useSelectionStore } from "@/stores/selectionStore";
 import { useStatusStore } from "@/stores/statusStore";
@@ -19,6 +19,8 @@ const ARROWS: Record<string, [number, number]> = {
 export function useSheetCommands(actions: SheetActions) {
   return useMemo(() => {
     const state = useSelectionStore.getState;
+    // ⌘⇧V: keydown에서 표시해 두면 이어지는 paste 이벤트가 값만 붙인다 (클립보드는 paste 이벤트에서만 읽힌다)
+    let nextPasteMode: PasteMode = "all";
 
     // 입력·편집 중인 값을 확정한다. 값이 그대로면 쓰지 않는다 — 실행 취소 스택에 빈 단계가 생기지 않게.
     const commit = () => {
@@ -65,9 +67,9 @@ export function useSheetCommands(actions: SheetActions) {
       } else state().setCopied(range);
     };
 
-    const pasteGrid = (grid: CellData[][]) => {
+    const pasteGrid = (grid: CellData[][], mode: PasteMode = "all") => {
       const s = state();
-      const written = actions.paste(selectedRange(s), grid);
+      const written = actions.paste(selectedRange(s), grid, mode);
       if (written) s.selectRange(written.start, written.end);
       s.setCopied(null);
     };
@@ -86,7 +88,9 @@ export function useSheetCommands(actions: SheetActions) {
     const paste = (e: ClipboardEvent) => {
       if (state().mode !== "idle") return;
       e.preventDefault();
-      pasteGrid(gridFromClipboard(e.clipboardData.getData("text/html"), e.clipboardData.getData("text/plain")));
+      const mode = nextPasteMode;
+      nextPasteMode = "all";
+      pasteGrid(gridFromClipboard(e.clipboardData.getData("text/html"), e.clipboardData.getData("text/plain")), mode);
     };
 
     // 우클릭 메뉴(DESIGN.md 14절). 메뉴 클릭은 사용자 동작이라 쓰기는 권한 없이 된다.
@@ -108,7 +112,7 @@ export function useSheetCommands(actions: SheetActions) {
 
     // 메뉴의 붙여넣기는 클립보드 읽기 권한이 필요하다. 거절·미지원이면 ⌘V를 안내한다.
     // 권한을 묻는 중이면 사용자가 창을 무시할 수 있어 먼저 안내를 띄운다 — 아무 반응 없이 멈춘 것처럼 보이지 않게.
-    const pasteFromMenu = async () => {
+    const pasteFromMenu = async (mode: PasteMode = "all") => {
       commit();
       const notice = useStatusStore.getState().show;
       const denied = `메뉴로는 붙여넣을 수 없어요. ${shortcut("V")}로 붙여넣어 주세요.`;
@@ -122,7 +126,7 @@ export function useSheetCommands(actions: SheetActions) {
         const [item] = await navigator.clipboard.read();
         if (!item) throw new Error("빈 클립보드");
         const read = async (type: string) => (item.types.includes(type) ? (await item.getType(type)).text() : "");
-        pasteGrid(gridFromClipboard(await read("text/html"), await read("text/plain")));
+        pasteGrid(gridFromClipboard(await read("text/html"), await read("text/plain")), mode);
       } catch {
         notice(denied);
       }
@@ -133,6 +137,11 @@ export function useSheetCommands(actions: SheetActions) {
       actions.clear(selectedRange(state()));
     };
 
+    const clearFormatsOfSelection = () => {
+      commit();
+      actions.clearFormats(selectedRange(state()));
+    };
+
     const onGridKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
       // 한글 조합 중 키는 IME 몫이다. 조합을 끝낸 뒤의 keydown만 처리한다.
       if (e.nativeEvent.isComposing || e.keyCode === 229) return;
@@ -141,7 +150,12 @@ export function useSheetCommands(actions: SheetActions) {
       const key = e.key.toLowerCase();
 
       if (mod) {
+        if (key === "v" && e.shiftKey && s.mode === "idle") {
+          nextPasteMode = "values"; // 기본 동작(paste 이벤트)은 그대로 둔다
+          return;
+        }
         if (key in FORMAT_KEYS) toggle(FORMAT_KEYS[key]!);
+        else if (key === "\\") clearFormatsOfSelection();
         else if (s.mode === "idle" && (key === "z" || key === "y")) {
           if (key === "y" || e.shiftKey) actions.redo();
           else actions.undo();
@@ -199,6 +213,7 @@ export function useSheetCommands(actions: SheetActions) {
       copyFromMenu,
       pasteFromMenu,
       clearSelection,
+      clearFormatsOfSelection,
       onGridKeyDown,
       onGridChange,
     };

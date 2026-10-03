@@ -4,6 +4,7 @@ import { MOD, cell, nameBox, openSheet, typeInto } from "./sheet";
 // M3.5 우클릭 메뉴 (docs/manual-scenarios.md M3.5)
 
 const menu = (page: Page) => page.getByRole("menu", { name: "셀 메뉴" });
+// 항목 글자는 체크 + 이름 + 단축키다. "붙여넣기"처럼 다른 항목 이름에 들어가는 이름은 /^이름/으로 찾는다.
 const menuItem = (page: Page, name: RegExp | string) =>
   menu(page).locator("[role^='menuitem']").filter({ hasText: name });
 
@@ -38,7 +39,7 @@ test("M3.5-2 메뉴 복사·잘라내기·붙여넣기 — 키보드 붙여넣�
   await expect(cell(page, 0, 1)).toHaveText("사과");
 
   await cell(page, 0, 2).click({ button: "right" });
-  await menuItem(page, "붙여넣기").click();
+  await menuItem(page, /^붙여넣기/).click();
   await expect(cell(page, 0, 2)).toHaveText("사과");
 
   await cell(page, 0, 0).click({ button: "right" });
@@ -97,7 +98,7 @@ test("M3.5-7 클립보드 읽기 권한이 없으면 메뉴 붙여넣기는 키�
   const context = await browser.newContext({ permissions: [] }); // 설정의 클립보드 권한을 물려받지 않은 브라우저
   const page = await openSheet(context);
   await cell(page, 0, 0).click({ button: "right" });
-  await menuItem(page, "붙여넣기").click();
+  await menuItem(page, /^붙여넣기/).click();
   // 권한을 묻는 중이면 허용 안내, 거절이면 붙여넣기 불가 안내 — 둘 다 ⌘V(Ctrl+V)를 알려 준다
   await expect(page.getByRole("status").filter({ hasText: /(⌘V|Ctrl\+V)/ })).toBeVisible();
   await context.close();
@@ -111,4 +112,50 @@ test("M3.5-8 화면 끝 셀을 우클릭해도 메뉴가 열려 있고, 화면 �
   const box = await menu(page).boundingBox();
   expect(box!.x + box!.width).toBeLessThanOrEqual(1000);
   expect(box!.y + box!.height).toBeLessThanOrEqual(520);
+});
+
+// 원본: A1 = "굵은 값"(굵게), 대상 C1 = "기울인 값"(기울임)
+async function seedPasteSpecial(page: Page) {
+  await typeInto(page, 0, 0, "굵은 값");
+  await cell(page, 0, 0).click();
+  await page.keyboard.press(`${MOD}+b`);
+  await typeInto(page, 0, 2, "기울인 값");
+  await cell(page, 0, 2).click();
+  await page.keyboard.press(`${MOD}+i`);
+  await cell(page, 0, 0).click();
+  await page.keyboard.press(`${MOD}+c`);
+}
+
+test("M3.5-12 값만 붙여넣기는 대상 서식을 지키고, 서식만 붙여넣기는 값을 지킨다", async ({ context }) => {
+  const page = await openSheet(context);
+  await seedPasteSpecial(page);
+
+  await cell(page, 0, 2).click({ button: "right" });
+  await menuItem(page, "값만 붙여넣기").click();
+  await expect(cell(page, 0, 2)).toHaveText("굵은 값");
+  await expect(cell(page, 0, 2)).toHaveCSS("font-weight", "400");
+  await expect(cell(page, 0, 2)).toHaveCSS("font-style", "italic");
+
+  // 키보드 ⌘⇧V는 헤드리스 Chromium이 붙여넣기로 보내지 않아 수동 시나리오(M3.5-14)로 확인한다
+
+  await page.keyboard.press(`${MOD}+z`);
+  await cell(page, 0, 2).click({ button: "right" });
+  await menuItem(page, "서식만 붙여넣기").click();
+  await expect(cell(page, 0, 2)).toHaveText("기울인 값");
+  await expect(cell(page, 0, 2)).toHaveCSS("font-weight", "700");
+  await expect(cell(page, 0, 2)).toHaveCSS("font-style", "normal");
+});
+
+test("M3.5-13 서식 지우기(메뉴·⌘\\)는 값을 남기고 서식만 지운다", async ({ context }) => {
+  const page = await openSheet(context);
+  await seedPasteSpecial(page);
+  await cell(page, 0, 0).click({ button: "right" });
+  await menuItem(page, "서식 지우기").click();
+  await expect(cell(page, 0, 0)).toHaveText("굵은 값");
+  await expect(cell(page, 0, 0)).toHaveCSS("font-weight", "400");
+
+  await cell(page, 0, 2).click();
+  await page.keyboard.press(`${MOD}+Backslash`);
+  await expect(cell(page, 0, 2)).toHaveText("기울인 값");
+  await expect(cell(page, 0, 2)).toHaveCSS("font-style", "normal");
 });

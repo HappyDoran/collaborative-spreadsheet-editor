@@ -3,6 +3,7 @@ import * as Y from "yjs";
 import {
   SHEET_COLS,
   SHEET_ROWS,
+  clearFormats,
   clearValues,
   createUndoManager,
   getCells,
@@ -71,6 +72,32 @@ describe("sheet 연산", () => {
     toggleFormat(doc, range(0, 0, 0, 0), "bold", LOCAL);
     writeGrid(doc, range(0, 0, 0, 0), [[{ value: "plain" }]], LOCAL);
     expect(readCell(doc, { row: 0, col: 0 })).toEqual({ value: "plain" });
+  });
+});
+
+describe("선택하여 붙여넣기·서식 지우기", () => {
+  it("값만 붙여넣기는 대상의 서식을 그대로 두고 원본 서식을 가져오지 않는다", () => {
+    const doc = new Y.Doc();
+    toggleFormat(doc, range(0, 0, 0, 0), "italic", LOCAL);
+    writeGrid(doc, range(0, 0, 0, 0), [[{ value: "새 값", bold: true }]], LOCAL, "values");
+    expect(readCell(doc, { row: 0, col: 0 })).toEqual({ value: "새 값", italic: true });
+  });
+
+  it("서식만 붙여넣기는 값을 그대로 두고 서식을 원본대로 바꾼다", () => {
+    const doc = new Y.Doc();
+    setCellValue(doc, { row: 0, col: 0 }, "그대로", LOCAL);
+    toggleFormat(doc, range(0, 0, 0, 0), "italic", LOCAL);
+    writeGrid(doc, range(0, 0, 0, 0), [[{ value: "무시", bold: true }]], LOCAL, "formats");
+    expect(readCell(doc, { row: 0, col: 0 })).toEqual({ value: "그대로", bold: true });
+  });
+
+  it("서식 지우기는 값을 남기고, 서식만 있던 빈 셀은 정리된다", () => {
+    const doc = new Y.Doc();
+    setCellValue(doc, { row: 0, col: 0 }, "값", LOCAL);
+    toggleFormat(doc, range(0, 0, 0, 1), "bold", LOCAL);
+    clearFormats(doc, range(0, 0, 0, 1), LOCAL);
+    expect(readCell(doc, { row: 0, col: 0 })).toEqual({ value: "값" });
+    expect(getCells(doc).size).toBe(1);
   });
 });
 

@@ -38,7 +38,7 @@ last_verified: 2026-10-02
 │       ├── index.ts                  # 공개 API 재수출
 │       ├── address.ts                # 0 기준 좌표 ↔ A1, 열 라벨, 범위 정규화
 │       ├── address.test.ts           # 26진 경계, 잘못된 표기, 역방향 범위
-│       ├── sheet.ts                  # 문서 스키마(칸별 셀 맵), 값·서식·지우기·붙여넣기 연산, UndoManager 정책
+│       ├── sheet.ts                  # 문서 스키마(칸별 셀 맵), 값·서식·지우기·서식 지우기·붙여넣기(전부·값만·서식만) 연산, UndoManager 정책
 │       ├── sheet.test.ts             # 빈 셀 정리, 서식 토글, 붙여넣기 채우기·잘림, undo 단위, 두 탭 undo·동시 병합
 │       ├── clipboard.ts              # TSV 직렬화·파싱(따옴표 규칙), 서식 HTML 표 생성
 │       ├── clipboard.test.ts         # CRLF, 따옴표 안 탭·줄바꿈, HTML 이스케이프
@@ -59,7 +59,7 @@ last_verified: 2026-10-02
     │   ├── sheet.ts                  # 공용 조작 (시트 열기·이름 지정·셀·이름 상자·아바타)
     │   ├── editing.spec.ts           # M1 편집·선택·서식·클립보드·undo·한글·저장 7건
     │   ├── collaboration.spec.ts     # M2 탭별 이름·새로고침 유지·합류·실시간·동시 편집·목록·원격 표시·탭 종료·undo 범위 9건
-    │   ├── contextMenu.spec.ts       # M3.5 우클릭 메뉴 8건
+    │   ├── contextMenu.spec.ts       # M3.5 우클릭 메뉴 10건
     │   └── ai.spec.ts                # M3 대상·스트리밍·적용·한 번 undo·중지·버리기·빈 결과·제외·실패·원래 값 바뀜·⌘K·위치 보기·새로고침 유지·다른 탭 상태·모델 선택·닫힌 패널 13건 (가짜 응답)
     └── src/
         ├── app/

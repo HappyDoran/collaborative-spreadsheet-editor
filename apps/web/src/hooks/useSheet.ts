@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  clearFormats,
   clearValues,
   createUndoManager,
   getCells,
@@ -14,6 +15,7 @@ import {
   type CellData,
   type CellFormat,
   type CellRange,
+  type PasteMode,
 } from "@sheet/core";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import type { Awareness } from "y-protocols/awareness";
@@ -25,8 +27,9 @@ export type SheetActions = {
   readGrid: (range: CellRange) => CellData[][];
   setValue: (addr: CellAddress, value: string) => void;
   clear: (range: CellRange) => void;
+  clearFormats: (range: CellRange) => void;
   toggleFormat: (range: CellRange, format: CellFormat) => void;
-  paste: (target: CellRange, grid: CellData[][]) => CellRange | null;
+  paste: (target: CellRange, grid: CellData[][], mode?: PasteMode) => CellRange | null;
   setValues: (entries: { addr: CellAddress; value: string }[]) => void;
   undo: () => void;
   redo: () => void;
@@ -98,8 +101,9 @@ export function useSheet(sheetId: string): SheetState {
       readGrid: (range) => readGrid(doc, range),
       setValue: (addr, value) => setCellValue(doc, addr, value, origin),
       clear: (range) => clearValues(doc, range, origin),
+      clearFormats: (range) => clearFormats(doc, range, origin),
       toggleFormat: (range, format) => toggleFormat(doc, range, format, origin),
-      paste: (target, grid) => writeGrid(doc, target, grid, origin),
+      paste: (target, grid, mode) => writeGrid(doc, target, grid, origin, mode),
       setValues: (entries) => setValues(doc, entries, origin),
       undo: () => void undo.undo(),
       redo: () => void undo.redo(),
