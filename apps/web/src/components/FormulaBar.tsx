@@ -4,21 +4,25 @@ import { isSingleCell, toA1 } from "@sheet/core";
 import type { RefObject } from "react";
 import styled from "styled-components";
 import { useShallow } from "zustand/react/shallow";
+import type { SheetActions } from "@/hooks/useSheet";
 import type { SheetCommands } from "@/hooks/useSheetCommands";
+import { useAiStore } from "@/stores/aiStore";
 import { selectedRange, useSelectionStore } from "@/stores/selectionStore";
 
 type Props = {
   commands: SheetCommands;
-  activeValue: string;
-  proposal?: { before: string; after: string }; // 활성 셀에 대한 AI 제안 (검토 중)
+  actions: SheetActions; // 활성 셀 값을 읽는다
   gridInputRef: RefObject<HTMLInputElement | null>;
 };
 
 // 이름 상자 + 값 편집줄. 편집줄을 누르면 엑셀처럼 편집 모드로 들어가고, 셀 입력칸과 같은 초안을 공유한다.
-export function FormulaBar({ commands, activeValue, proposal, gridInputRef }: Props) {
+export function FormulaBar({ commands, actions, gridInputRef }: Props) {
   const { active, extent, mode, draft } = useSelectionStore(
     useShallow((s) => ({ active: s.active, extent: s.extent, mode: s.mode, draft: s.draft })),
   );
+  const activeValue = actions.read(active)?.value ?? "";
+  // 활성 셀에 대한 AI 제안 (검토 중)
+  const proposal = useAiStore((s) => s.edits.find((e) => e.addr.row === active.row && e.addr.col === active.col));
   const range = selectedRange({ active, extent });
   const backToGrid = () => gridInputRef.current?.focus();
 

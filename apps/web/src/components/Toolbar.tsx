@@ -1,13 +1,15 @@
 "use client";
 
-import type { CellFormat } from "@sheet/core";
+import { FORMATS, type CellFormat } from "@sheet/core";
 import styled from "styled-components";
+import type { SheetActions } from "@/hooks/useSheet";
 import type { SheetCommands } from "@/hooks/useSheetCommands";
+import { useSelectionStore } from "@/stores/selectionStore";
 import { isMac, shortcut } from "@/hooks/shortcut";
 
 type Props = {
   commands: SheetCommands;
-  formats: Record<CellFormat, boolean>; // 활성 셀의 현재 서식
+  actions: SheetActions; // 활성 셀의 현재 서식을 읽는다
   canUndo: boolean;
   canRedo: boolean;
   onUndo: () => void;
@@ -24,7 +26,11 @@ const FORMAT_BUTTONS: { format: CellFormat; label: string; title: string; key: s
 ];
 
 // 버튼은 mousedown 기본 동작을 막아 셀 입력칸의 포커스를 빼앗지 않는다.
-export function Toolbar({ commands, formats, canUndo, canRedo, onUndo, onRedo, aiOpen, onToggleAi }: Props) {
+export function Toolbar({ commands, actions, canUndo, canRedo, onUndo, onRedo, aiOpen, onToggleAi }: Props) {
+  // 선택이 움직일 때 툴바만 다시 그린다 (상위 Editor는 선택을 구독하지 않는다)
+  const active = useSelectionStore((s) => s.active);
+  const cell = actions.read(active);
+  const formats = Object.fromEntries(FORMATS.map((f) => [f, !!cell?.[f]])) as Record<CellFormat, boolean>;
   return (
     <Bar role="toolbar" aria-label="서식" onMouseDown={(e) => e.preventDefault()}>
       <Button type="button" onClick={onUndo} disabled={!canUndo} title={`실행 취소 (${shortcut("Z")})`} aria-label="실행 취소">

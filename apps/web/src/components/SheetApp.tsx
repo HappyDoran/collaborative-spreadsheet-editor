@@ -1,6 +1,6 @@
 "use client";
 
-import { cellKey, staleEdits } from "@sheet/core";
+import { cellKey, staleEdits, type CellAddress } from "@sheet/core";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import type { Awareness } from "y-protocols/awareness";
 import styled from "styled-components";
@@ -11,7 +11,6 @@ import { useSheet, type SheetActions } from "@/hooks/useSheet";
 import { useSheetCommands } from "@/hooks/useSheetCommands";
 import { useAiStore } from "@/stores/aiStore";
 import { readLastName, useNameStore } from "@/stores/identityStore";
-import { useSelectionStore } from "@/stores/selectionStore";
 import { AiPanel } from "./AiPanel";
 import { FormulaBar } from "./FormulaBar";
 import { Grid } from "./Grid";
@@ -58,22 +57,18 @@ function Editor({ actions, awareness, version, canUndo, canRedo, name, color, as
   const others = participants.filter((p) => !p.isSelf);
   const commands = useSheetCommands(actions);
   const inputRef = useRef<HTMLInputElement>(null);
-  const active = useSelectionStore((s) => s.active);
-  const cell = actions.read(active);
   const { setName, clearName } = useNameStore.getState();
   const ai = useAiEdit(actions);
   const aiOpen = useAiStore((s) => s.open);
   const proposals = useAiStore((s) => s.edits);
-  const read = (addr: Parameters<typeof actions.read>[0]) => actions.read(addr)?.value ?? "";
+  const read = (addr: CellAddress) => actions.read(addr)?.value ?? "";
   const stale = new Map(staleEdits(proposals, read).map((e) => [cellKey(e.addr), read(e.addr)]));
-  const activeProposal = proposals.find((p) => p.addr.row === active.row && p.addr.col === active.col);
   const debug = useDebugMode();
 
   // 이름을 정하고 입력 화면이 닫히면 바로 시트에 입력할 수 있게 그리드로 포커스를 옮긴다
   useEffect(() => {
     if (name) inputRef.current?.focus();
   }, [name]);
-
 
   // ⌘K / Ctrl+K: 닫혀 있으면 열고 입력칸으로, 입력칸에 있으면 닫고 그리드로 (DESIGN.md 13절)
   useEffect(() => {
@@ -104,7 +99,7 @@ function Editor({ actions, awareness, version, canUndo, canRedo, name, color, as
       </TitleBar>
       <Toolbar
         commands={commands}
-        formats={{ bold: !!cell?.bold, italic: !!cell?.italic, underline: !!cell?.underline }}
+        actions={actions}
         canUndo={canUndo}
         canRedo={canRedo}
         onUndo={() => runHistory(actions.undo)}
@@ -114,8 +109,7 @@ function Editor({ actions, awareness, version, canUndo, canRedo, name, color, as
       />
       <FormulaBar
         commands={commands}
-        activeValue={cell?.value ?? ""}
-        proposal={activeProposal}
+        actions={actions}
         gridInputRef={inputRef}
       />
       <Workspace>
