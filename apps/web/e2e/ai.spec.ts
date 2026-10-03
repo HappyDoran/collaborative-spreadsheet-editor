@@ -280,3 +280,12 @@ test("M3-24 후속 지시에는 이전 대화가 함께 간다, 서버는 형식
   expect(bad.status()).toBe(400);
 });
 
+test("M3-25 빈 패널의 예시를 누르면 입력칸에 채워지고, 보내기는 사용자가 한다", async ({ context }) => {
+  const page = await openSheet(context);
+  await page.keyboard.press(`${MOD}+k`);
+  await panel(page).getByRole("button", { name: "선택한 칸을 영어로 번역해 줘" }).click();
+  await expect(panel(page).getByLabel("AI에게 할 일")).toHaveValue("선택한 칸을 영어로 번역해 줘");
+  await expect(panel(page).getByLabel("AI에게 할 일")).toBeFocused();
+  await expect(panel(page).getByRole("listitem").filter({ hasText: "선택한 칸을 영어로 번역해 줘" })).toHaveCount(1); // 보낸 메시지 없음 — 예시 버튼 자신만
+});
+

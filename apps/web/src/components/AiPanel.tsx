@@ -100,6 +100,21 @@ export function AiPanel({ open, ai, staleCount, others, gridInputRef }: Props) {
           {messages.length === 0 && (
             <Empty>
               범위를 선택하고 할 일을 적어 보세요. AI가 셀 값을 제안하면 시트에서 원래 값과 비교한 뒤 적용할 수 있어요.
+              <Examples>
+                {/* 빈 시트에서도 바로 써 볼 수 있게 — 누르면 입력칸에 채우기만 하고, 보내기는 사용자가 한다 */}
+                {EXAMPLES.map((text) => (
+                  <Example
+                    key={text}
+                    type="button"
+                    onClick={() => {
+                      setDraft(text);
+                      document.getElementById("ai-input")?.focus();
+                    }}
+                  >
+                    {text}
+                  </Example>
+                ))}
+              </Examples>
             </Empty>
           )}
           {messages.map((m) => (
@@ -318,9 +333,44 @@ const Messages = styled.ol`
   gap: 8px;
 `;
 
+const EXAMPLES = [
+  "A1부터 지점 5곳의 1~3월 매출 예시 표를 만들어 줘",
+  "선택한 칸의 숫자에 10%를 더해 줘",
+  "선택한 칸을 영어로 번역해 줘",
+];
+
 const Empty = styled.li`
   color: var(--ink-muted);
   line-height: 1.6;
+`;
+
+const Examples = styled.span`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 10px;
+`;
+
+const Example = styled.button`
+  padding: 4px 10px;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--header);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
 `;
 
 const Message = styled.li<{ $role: AiMessage["role"] }>`
