@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { StyledRegistry } from "@/components/StyledRegistry";
+import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
 import "./globals.css";
 
 export const metadata: Metadata = {

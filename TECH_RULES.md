@@ -1,7 +1,7 @@
 ---
 title: 기술 스택과 구현 규칙
 kind: rule
-last_verified: 2026-10-02
+last_verified: 2026-10-03
 ---
 
 # 기술 스택 및 구현 규칙
@@ -19,6 +19,7 @@ last_verified: 2026-10-02
 | 동기화 | Yjs 13.6.33 (`Y.Doc`, `Y.UndoManager`, awareness), awareness 프로토콜 y-protocols 1.0.7, 영속 y-indexeddb 9.0.12. 탭 간 전송은 BroadcastChannel 직접 연결(`apps/web/src/collab/broadcastProvider.ts`) — 브라우저 API만 | `packages/sheet-core/package.json`, `apps/web/package.json` |
 | 로컬 UI 상태 | Zustand 5.0.15 | `apps/web/package.json` |
 | 스타일 | styled-components 6.5.3 (SSR registry `StyledRegistry`, SWC `compiler.styledComponents`) | `apps/web/package.json`, `apps/web/next.config.ts` |
+| 글꼴 | Pretendard 1.3.9 (가변·동적 서브셋 CSS를 `layout.tsx`에서 import, 자체 호스팅) | `apps/web/package.json` |
 | 테스트 | Vitest 5 — `@sheet/core` 대상 | `packages/sheet-core/package.json` |
 | LLM 연결 | OpenAI 직접 — AI SDK `ai` 7, `@ai-sdk/openai` 4 (Responses API). 모델은 허용 목록(`gpt-5.4-nano`·`gpt-5.4-mini` 기본·`gpt-5.4`) | `apps/web/package.json`, `packages/sheet-core/src/ai/models.ts` |
 
