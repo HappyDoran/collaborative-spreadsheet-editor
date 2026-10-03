@@ -22,11 +22,16 @@ export function useSheetCommands(actions: SheetActions) {
     // ⌘⇧V: keydown에서 표시해 두면 이어지는 paste 이벤트가 값만 붙인다 (클립보드는 paste 이벤트에서만 읽힌다)
     let nextPasteMode: PasteMode = "all";
 
-    // 입력·편집 중인 값을 확정한다. 값이 그대로면 쓰지 않는다 — 실행 취소 스택에 빈 단계가 생기지 않게.
+    // 입력·편집을 시작한다. 시작 순간의 셀 값을 함께 기록한다.
+    const begin = (mode: "enter" | "edit", draft: string) =>
+      state().startEditing(mode, draft, actions.read(state().active)?.value ?? "");
+
+    // 입력·편집 중인 값을 확정한다. 시작한 뒤 바꾸지 않았으면 쓰지 않는다 — 그 사이 다른 탭이 쓴 값을
+    // 편집을 열 때의 옛 값으로 덮지 않고, 실행 취소 스택에 빈 단계도 생기지 않는다.
     const commit = () => {
       const s = state();
       if (s.mode === "idle") return;
-      if (s.draft !== (actions.read(s.active)?.value ?? "")) actions.setValue(s.active, s.draft);
+      if (s.draft !== s.original) actions.setValue(s.active, s.draft);
       s.stopEditing();
     };
 
@@ -49,7 +54,7 @@ export function useSheetCommands(actions: SheetActions) {
 
     const startEditing = () => {
       const s = state();
-      if (s.mode === "idle") s.startEditing("edit", actions.read(s.active)?.value ?? "");
+      if (s.mode === "idle") begin("edit", actions.read(s.active)?.value ?? "");
     };
 
     // 선택 범위를 클립보드 형식(탭 구분 텍스트 + 서식 HTML 표)으로. 엑셀·구글 시트도 이 둘을 읽는다.
@@ -191,14 +196,14 @@ export function useSheetCommands(actions: SheetActions) {
         actions.clear(selectedRange(s));
       } else if (e.key === "Backspace") {
         e.preventDefault();
-        s.startEditing("enter", "");
+        begin("enter", "");
       }
       // 그 밖의 글자는 입력칸에 그대로 들어가고 onChange가 입력 모드로 바꾼다.
     };
 
     const onGridChange = (value: string) => {
       const s = state();
-      if (s.mode === "idle") s.startEditing("enter", value);
+      if (s.mode === "idle") begin("enter", value);
       else s.setDraft(value);
     };
 

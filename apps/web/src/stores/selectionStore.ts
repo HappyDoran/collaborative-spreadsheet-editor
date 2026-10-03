@@ -9,6 +9,7 @@ type SelectionState = {
   extent: CellAddress; // 범위의 반대쪽 모서리
   mode: EditMode;
   draft: string;
+  original: string; // 편집을 시작한 순간의 셀 값 — 확정할 때 바뀌었는지 이것과 비교한다
   tabStartCol: number | null; // Tab으로 옮겨 간 뒤 Enter가 돌아갈 열
   copied: CellRange | null; // 복사 표시(점선) 범위
 
@@ -17,7 +18,7 @@ type SelectionState = {
   move: (dRow: number, dCol: number, extend?: boolean) => void;
   moveAfterTab: (back: boolean) => void;
   moveAfterEnter: (back: boolean) => void;
-  startEditing: (mode: Exclude<EditMode, "idle">, draft: string) => void;
+  startEditing: (mode: Exclude<EditMode, "idle">, draft: string, original: string) => void;
   setDraft: (draft: string) => void;
   stopEditing: () => void;
   setCopied: (range: CellRange | null) => void;
@@ -35,6 +36,7 @@ export const useSelectionStore = create<SelectionState>()((set) => ({
   extent: ORIGIN,
   mode: "idle",
   draft: "",
+  original: "",
   tabStartCol: null,
   copied: null,
 
@@ -57,9 +59,9 @@ export const useSelectionStore = create<SelectionState>()((set) => ({
       const next = clamp({ row: s.active.row + (back ? -1 : 1), col: s.tabStartCol ?? s.active.col });
       return { active: next, extent: next, tabStartCol: null };
     }),
-  startEditing: (mode, draft) => set({ mode, draft, copied: null }),
+  startEditing: (mode, draft, original) => set({ mode, draft, original, copied: null }),
   setDraft: (draft) => set({ draft }),
-  stopEditing: () => set({ mode: "idle", draft: "" }),
+  stopEditing: () => set({ mode: "idle", draft: "", original: "" }),
   setCopied: (copied) => set({ copied }),
 }));
 

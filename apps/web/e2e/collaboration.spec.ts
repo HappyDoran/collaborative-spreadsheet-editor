@@ -62,6 +62,19 @@ test("M2-C3 같은 셀에 값과 서식을 동시에 바꾸면 둘 다 남는다
   }
 });
 
+test("M2-C12 편집을 열고 바꾸지 않은 채 확정하면, 그 사이 다른 탭이 쓴 값을 덮지 않는다", async ({ context }) => {
+  const a = await openSheet(context);
+  const b = await openSheet(context);
+  await typeInto(a, 6, 0, "10");
+  await expect(cell(b, 6, 0)).toHaveText("10");
+  await cell(a, 6, 0).click();
+  await a.keyboard.press("F2"); // 편집만 연다 — 초안은 "10"
+  await typeInto(b, 6, 0, "20");
+  await expect(cell(a, 6, 0)).toHaveText("20");
+  await a.keyboard.press("Enter");
+  for (const p of [a, b]) await expect(cell(p, 6, 0)).toHaveText("20");
+});
+
 test("M2-C4 참여자 목록: 탭마다 따로, 같은 이름은 그대로", async ({ context }) => {
   const a = await openSheet(context, "민지");
   await openSheet(context, "민지");
