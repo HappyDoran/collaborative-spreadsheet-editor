@@ -8,7 +8,7 @@ export const AI_CONTEXT_MAX_CELLS = 600;
 
 // 값이 있는 셀만 `주소: "값"` 한 줄씩. 대상 범위 안의 셀을 먼저 넣고, 상한을 넘으면 나머지는 뺀다.
 // 값은 JSON 문자열로 감싸 줄바꿈·따옴표가 줄 구분을 깨지 않게 한다.
-export function sheetContext(read: (addr: CellAddress) => string, scope: AiScope) {
+export function sheetContext(read: (addr: CellAddress) => string, scope: AiScope): string {
   const inside: string[] = [];
   const outside: string[] = [];
   for (let row = 0; row < SHEET_ROWS; row++) {
@@ -19,5 +19,5 @@ export function sheetContext(read: (addr: CellAddress) => string, scope: AiScope
     }
   }
   const lines = [...inside, ...outside];
-  return { text: lines.slice(0, AI_CONTEXT_MAX_CELLS).join("\n"), truncated: lines.length > AI_CONTEXT_MAX_CELLS };
+  return lines.slice(0, AI_CONTEXT_MAX_CELLS).join("\n");
 }

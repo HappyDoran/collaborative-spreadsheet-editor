@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { colToLabel, labelToCol, normalizeRange, parseA1, toA1 } from "./address";
+import { colToLabel, isSingleCell, labelToCol, normalizeRange, parseA1, toA1 } from "./address";
 
 describe("address", () => {
   it("열 번호와 라벨을 26진 경계에서 왕복 변환한다", () => {
@@ -23,5 +23,12 @@ describe("address", () => {
       start: { row: 1, col: 3 },
       end: { row: 4, col: 5 },
     });
+  });
+
+  it("한 칸 범위 판정", () => {
+    const a = { row: 2, col: 3 };
+    expect(isSingleCell({ start: a, end: a })).toBe(true);
+    expect(isSingleCell({ start: a, end: { row: 2, col: 4 } })).toBe(false);
+    expect(isSingleCell({ start: a, end: { row: 3, col: 3 } })).toBe(false);
   });
 });

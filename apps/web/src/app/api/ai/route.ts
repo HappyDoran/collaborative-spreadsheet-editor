@@ -1,7 +1,7 @@
 import { openai } from "@ai-sdk/openai";
 import { APICallError, Output, jsonSchema, streamText } from "ai";
 import { isValidScope, resolveModel, type AiErrorCode, type AiItem, type AiRequestBody, type AiStreamEvent } from "@sheet/core";
-import { MockFailure, mockItems } from "./mock";
+import { Failure, mockItems } from "./mock";
 import { SYSTEM_PROMPT, buildPrompt } from "./prompt";
 
 // AI 편집 서버 라우트. 브라우저에는 NDJSON(한 줄에 이벤트 하나)으로 흘려보낸다 (DESIGN.md 13절).
@@ -26,12 +26,6 @@ const ITEM_SCHEMA = jsonSchema<AiItem>({
   required: ["kind", "cell", "text"],
   additionalProperties: false,
 });
-
-class Failure extends Error {
-  constructor(readonly code: AiErrorCode) {
-    super(code);
-  }
-}
 
 export async function POST(request: Request) {
   const body = await readBody(request);
@@ -101,7 +95,7 @@ async function readBody(request: Request): Promise<AiRequestBody | AiErrorCode> 
 }
 
 function errorCode(error: unknown): AiErrorCode {
-  if (error instanceof Failure || error instanceof MockFailure) return error.code;
+  if (error instanceof Failure) return error.code;
   // 재시도 끝에 실패하면 마지막 오류가 감싸여 온다
   const cause = (error as { lastError?: unknown })?.lastError ?? error;
   if (APICallError.isInstance(cause)) {

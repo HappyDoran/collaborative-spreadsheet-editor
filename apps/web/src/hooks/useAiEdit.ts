@@ -1,6 +1,6 @@
 "use client";
 
-import { cellKey, judgeEdit, sheetContext, staleEdits, type AiScope, type CellAddress, type ProposedEdit } from "@sheet/core";
+import { cellKey, isSingleCell, judgeEdit, sheetContext, staleEdits, type AiScope, type CellAddress, type ProposedEdit } from "@sheet/core";
 import { useEffect, useMemo, useRef } from "react";
 import { AbortedByUser, streamAiEdit } from "@/ai/streamAiEdit";
 import { appendAiText, endRun, pushMessage, useAiStore } from "@/stores/aiStore";
@@ -10,8 +10,7 @@ import type { SheetActions } from "./useSheet";
 // 지금 선택과 대상 설정으로 AI 대상 범위를 정한다. auto: 여러 칸이면 그 범위, 한 칸이면 시트 전체.
 export function resolveScope(mode: "auto" | "selection" | "sheet"): AiScope {
   const range = selectedRange(useSelectionStore.getState());
-  const multi = range.start.row !== range.end.row || range.start.col !== range.end.col;
-  if (mode === "sheet" || (mode === "auto" && !multi)) return null;
+  if (mode === "sheet" || (mode === "auto" && isSingleCell(range))) return null;
   return range;
 }
 
@@ -71,7 +70,7 @@ export function useAiEdit(actions: SheetActions) {
       // 요청 순간의 값을 컨텍스트를 만들며 함께 기록한다 — AI가 보고 계산한 값이자
       // X1(원래 값이 바뀜) 판정의 기준 (DESIGN.md 15절). 빈 칸은 기록하지 않으므로 없으면 "".
       const snapshot = new Map<string, string>();
-      const { text: context } = sheetContext((addr) => {
+      const context = sheetContext((addr) => {
         const value = read(addr);
         if (value !== "") snapshot.set(cellKey(addr), value);
         return value;

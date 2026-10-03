@@ -1,6 +1,6 @@
 "use client";
 
-import { normalizeRange } from "@sheet/core";
+import { isSingleCell, normalizeRange } from "@sheet/core";
 import styled from "styled-components";
 import type { Participant } from "@/hooks/usePresence";
 import { rectOf, single } from "./gridGeometry";
@@ -26,11 +26,10 @@ export function RemoteCursors({ others }: { others: Participant[] }) {
     }
 
     const range = normalizeRange(cursor.active, cursor.extent);
-    const multi = range.start.row !== range.end.row || range.start.col !== range.end.col;
     const cell = rectOf(single(cursor.active));
     return (
       <Layer key={clientId} style={style}>
-        {multi && <Range style={rectOf(range)} />}
+        {!isSingleCell(range) && <Range style={rectOf(range)} />}
         <Pointer style={cell} $editing={cursor.editing} />
         <Tag style={{ top: cell.top, left: cell.left + cell.width }} $below={cursor.active.row === 0}>
           {cursor.editing ? `${user.name} · 입력 중` : user.name}

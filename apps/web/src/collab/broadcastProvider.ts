@@ -58,9 +58,12 @@ export function connectBroadcast(channelName: string, doc: Y.Doc, awareness: Awa
     }
   };
 
+  // 합류 인사: 다른 탭이 내게 모자란 문서 부분과 자기 참여자 상태를 답한다
+  const hello = () => post({ type: "hello", stateVector: Y.encodeStateVector(doc) });
+
   doc.on("update", onDocUpdate);
   awareness.on("update", onAwarenessUpdate);
-  post({ type: "hello", stateVector: Y.encodeStateVector(doc) });
+  hello();
 
   // 탭을 닫거나 떠날 때 목록에서 바로 빠진다 (C6). 방송 못 하고 죽은 탭은 awareness 30초 만료가 정리한다.
   let hiddenState: unknown = null;
@@ -72,7 +75,7 @@ export function connectBroadcast(channelName: string, doc: Y.Doc, awareness: Awa
   const onPageShow = (e: PageTransitionEvent) => {
     if (!e.persisted || !hiddenState) return;
     awareness.setLocalState(hiddenState as Record<string, unknown>);
-    post({ type: "hello", stateVector: Y.encodeStateVector(doc) });
+    hello();
   };
   window.addEventListener("pagehide", onPageHide);
   window.addEventListener("pageshow", onPageShow);
@@ -86,7 +89,7 @@ export function connectBroadcast(channelName: string, doc: Y.Doc, awareness: Awa
     lastResync = Date.now();
     const local = awareness.getLocalState();
     if (local) awareness.setLocalState(local);
-    post({ type: "hello", stateVector: Y.encodeStateVector(doc) });
+    hello();
   };
   document.addEventListener("visibilitychange", resync);
   document.addEventListener("resume", resync);

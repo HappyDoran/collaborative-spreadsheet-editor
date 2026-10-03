@@ -55,6 +55,7 @@ type EditorProps = {
 function Editor({ actions, awareness, version, canUndo, canRedo, name, color }: EditorProps) {
   usePresence(awareness, name, color);
   const participants = useParticipants(awareness);
+  const others = participants.filter((p) => !p.isSelf);
   const commands = useSheetCommands(actions);
   const inputRef = useRef<HTMLInputElement>(null);
   const active = useSelectionStore((s) => s.active);
@@ -73,11 +74,6 @@ function Editor({ actions, awareness, version, canUndo, canRedo, name, color }: 
     if (name) inputRef.current?.focus();
   }, [name]);
 
-  // AI 패널을 열고 입력칸으로 (툴바 버튼, 우클릭 메뉴). 대상은 지금 선택으로 정해진다.
-  const openAi = () => {
-    useAiStore.setState({ open: true });
-    requestAnimationFrame(() => document.getElementById("ai-input")?.focus());
-  };
 
   // ⌘K / Ctrl+K: 닫혀 있으면 열고 입력칸으로, 입력칸에 있으면 닫고 그리드로 (DESIGN.md 13절)
   useEffect(() => {
@@ -88,10 +84,7 @@ function Editor({ actions, awareness, version, canUndo, canRedo, name, color }: 
       if (useAiStore.getState().open && document.activeElement === input) {
         useAiStore.setState({ open: false });
         inputRef.current?.focus();
-      } else {
-        useAiStore.setState({ open: true });
-        requestAnimationFrame(() => document.getElementById("ai-input")?.focus());
-      }
+      } else openAi();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
@@ -129,7 +122,7 @@ function Editor({ actions, awareness, version, canUndo, canRedo, name, color }: 
         <Grid
           actions={actions}
           version={version}
-          others={participants.filter((p) => !p.isSelf)}
+          others={others}
           proposals={proposals}
           stale={stale}
           onOpenAi={openAi}
@@ -140,7 +133,7 @@ function Editor({ actions, awareness, version, canUndo, canRedo, name, color }: 
           open={aiOpen}
           ai={ai}
           staleCount={stale.size}
-          others={participants.filter((p) => !p.isSelf)}
+          others={others}
           gridInputRef={inputRef}
         />
       </Workspace>
@@ -236,3 +229,9 @@ const Loading = styled.p`
   padding: 24px 16px;
   color: var(--ink-muted);
 `;
+
+// AI 패널을 열고 입력칸으로 (툴바 버튼, ⌘K, 우클릭 메뉴). 대상은 지금 선택으로 정해진다.
+function openAi() {
+  useAiStore.setState({ open: true });
+  requestAnimationFrame(() => document.getElementById("ai-input")?.focus());
+}

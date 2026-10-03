@@ -27,6 +27,10 @@ export function parseA1(a1: string): CellAddress | null {
 }
 
 // 드래그 방향과 무관하게 start가 좌상단, end가 우하단이 되도록 정규화한다.
+export function isSingleCell({ start, end }: CellRange): boolean {
+  return start.row === end.row && start.col === end.col;
+}
+
 export function normalizeRange(a: CellAddress, b: CellAddress): CellRange {
   return {
     start: { row: Math.min(a.row, b.row), col: Math.min(a.col, b.col) },

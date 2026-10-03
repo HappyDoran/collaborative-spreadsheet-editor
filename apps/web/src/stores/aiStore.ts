@@ -49,7 +49,7 @@ export const useAiStore = create<AiState>()(
       name: "sheet:ai",
       storage: createJSONStorage(() => sessionStorage),
       skipHydration: true, // hooks/useAiEdit가 마운트 후 읽는다
-      partialize: (s) => ({ ...s, mock: false }), // 가짜 응답 모드는 디버깅 버튼·환경이 정한다
+      // 가짜 응답 모드는 저장값이 아니라 디버깅 버튼·환경이 정한다(mock: current.mock).
       // 생성 중에 새로고침하면 스트림을 이어 받을 수 없다 — 받은 제안을 버린다
       merge: (persisted, current): AiState => {
         const saved = { ...(persisted as Partial<AiState>), mock: current.mock };

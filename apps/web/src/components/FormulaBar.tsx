@@ -1,6 +1,6 @@
 "use client";
 
-import { toA1 } from "@sheet/core";
+import { isSingleCell, toA1 } from "@sheet/core";
 import type { RefObject } from "react";
 import styled from "styled-components";
 import { useShallow } from "zustand/react/shallow";
@@ -20,12 +20,11 @@ export function FormulaBar({ commands, activeValue, proposal, gridInputRef }: Pr
     useShallow((s) => ({ active: s.active, extent: s.extent, mode: s.mode, draft: s.draft })),
   );
   const range = selectedRange({ active, extent });
-  const isRange = range.start.row !== range.end.row || range.start.col !== range.end.col;
   const backToGrid = () => gridInputRef.current?.focus();
 
   return (
     <Bar>
-      <NameBox aria-label="선택한 셀">{isRange ? `${toA1(range.start)}:${toA1(range.end)}` : toA1(active)}</NameBox>
+      <NameBox aria-label="선택한 셀">{isSingleCell(range) ? toA1(active) : `${toA1(range.start)}:${toA1(range.end)}`}</NameBox>
       <ValueInput
         aria-label="셀 값"
         spellCheck={false}

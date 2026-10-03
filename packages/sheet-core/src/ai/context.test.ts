@@ -6,12 +6,10 @@ describe("sheetContext", () => {
     const values: Record<string, string> = { "0:0": "제목", "5:1": 'a "b"\nc' };
     const read = ({ row, col }: { row: number; col: number }) => values[`${row}:${col}`] ?? "";
     const scope = { start: { row: 5, col: 1 }, end: { row: 5, col: 1 } };
-    expect(sheetContext(read, scope)).toEqual({ text: 'B6: "a \\"b\\"\\nc"\nA1: "제목"', truncated: false });
+    expect(sheetContext(read, scope)).toBe('B6: "a \\"b\\"\\nc"\nA1: "제목"');
   });
 
-  it("상한을 넘으면 자르고 truncated", () => {
-    const { text, truncated } = sheetContext(() => "x", null);
-    expect(text.split("\n")).toHaveLength(AI_CONTEXT_MAX_CELLS);
-    expect(truncated).toBe(true);
+  it("상한을 넘으면 자른다", () => {
+    expect(sheetContext(() => "x", null).split("\n")).toHaveLength(AI_CONTEXT_MAX_CELLS);
   });
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { SHEET_COLS, SHEET_ROWS, colToLabel, type CellAddress, type ProposedEdit } from "@sheet/core";
+import { SHEET_COLS, SHEET_ROWS, colToLabel, inScope, isSingleCell, type CellAddress, type ProposedEdit } from "@sheet/core";
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type RefObject } from "react";
 import styled from "styled-components";
 import { useShallow } from "zustand/react/shallow";
@@ -50,6 +50,11 @@ export function Grid({ actions, version, others, proposals, stale, onOpenAi, com
   }, [active, inputRef]);
 
   const target = (e: MouseEvent) => (e.target as HTMLElement).closest<HTMLElement>("[data-row],[data-col]");
+  // 머리글을 누르면 그 열·행 전체를 고른다
+  const selectHeader = ({ row, col }: DOMStringMap) => {
+    if (col !== undefined) selectRange({ row: 0, col: Number(col) }, { row: SHEET_ROWS - 1, col: Number(col) });
+    else if (row !== undefined) selectRange({ row: Number(row), col: 0 }, { row: Number(row), col: SHEET_COLS - 1 });
+  };
 
   const onMouseDown = (e: MouseEvent) => {
     const el = target(e);
@@ -61,8 +66,7 @@ export function Grid({ actions, version, others, proposals, stale, onOpenAi, com
     if (row !== undefined && col !== undefined) {
       select({ row: Number(row), col: Number(col) }, e.shiftKey);
       dragging.current = true;
-    } else if (col !== undefined) selectRange({ row: 0, col: Number(col) }, { row: SHEET_ROWS - 1, col: Number(col) });
-    else if (row !== undefined) selectRange({ row: Number(row), col: 0 }, { row: Number(row), col: SHEET_COLS - 1 });
+    } else selectHeader(el.dataset);
     inputRef.current?.focus();
   };
 
@@ -98,10 +102,8 @@ export function Grid({ actions, version, others, proposals, stale, onOpenAi, com
     if (row !== undefined && col !== undefined) {
       // 엑셀처럼: 선택 범위 안이면 범위를 유지, 밖이면 그 셀로 옮긴다
       const addr = { row: Number(row), col: Number(col) };
-      const inside = addr.row >= range.start.row && addr.row <= range.end.row && addr.col >= range.start.col && addr.col <= range.end.col;
-      if (!inside) select(addr);
-    } else if (col !== undefined) selectRange({ row: 0, col: Number(col) }, { row: SHEET_ROWS - 1, col: Number(col) });
-    else if (row !== undefined) selectRange({ row: Number(row), col: 0 }, { row: Number(row), col: SHEET_COLS - 1 });
+      if (!inScope(addr, range)) select(addr);
+    } else selectHeader(el.dataset);
     setMenu({ x: e.clientX, y: e.clientY });
   };
 
@@ -195,7 +197,7 @@ export function Grid({ actions, version, others, proposals, stale, onOpenAi, com
         {/* 제안이 있는 동안은 선택 배경을 칠하지 않는다 — 형광펜과 섞여 탁해지지 않게 */}
         <RangeBox
           style={rectOf(range)}
-          $multi={proposals.length === 0 && (range.start.row !== range.end.row || range.start.col !== range.end.col)}
+          $multi={proposals.length === 0 && !isSingleCell(range)}
         />
         {copied && <CopyBox style={rectOf(copied)} />}
         <ActiveInput actions={actions} commands={commands} inputRef={inputRef} active={active} onOpenMenu={openMenuAtCell} />
@@ -252,7 +254,7 @@ const Cell = memo(function Cell({ row, col, value, bold, italic, underline }: Ce
       data-row={row}
       data-col={col}
       style={{ gridRow: row + 2, gridColumn: col + 2 }}
-      $numeric={value !== "" && NUMERIC.test(value)}
+      $numeric={NUMERIC.test(value)}
       $bold={bold}
       $italic={italic}
       $underline={underline}

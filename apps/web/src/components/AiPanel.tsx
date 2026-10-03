@@ -1,6 +1,6 @@
 "use client";
 
-import { AI_MODELS, scopesOverlap, toA1, type AiErrorCode, type AiModelId, type AiScope } from "@sheet/core";
+import { AI_MODELS, cellKey, scopesOverlap, toA1, type AiErrorCode, type AiModelId, type AiScope } from "@sheet/core";
 import { useEffect, useRef, useState, type RefObject } from "react";
 import styled from "styled-components";
 import { useShallow } from "zustand/react/shallow";
@@ -61,7 +61,7 @@ export function AiPanel({ open, ai, staleCount, others, gridInputRef }: Props) {
   }, [messages]);
 
   // 첫 제안이 도착하면 그 셀로 스크롤 — 시트 전체가 대상이면 화면 밖에 생길 수 있다
-  const firstEdit = edits[0] ? `${edits[0].addr.row}:${edits[0].addr.col}` : null;
+  const firstEdit = edits[0] ? cellKey(edits[0].addr) : null;
   useEffect(() => {
     if (firstEdit) document.querySelector(`[data-proposal="${firstEdit}"]`)?.scrollIntoView({ block: "center", inline: "center" });
   }, [firstEdit]);
@@ -74,7 +74,7 @@ export function AiPanel({ open, ai, staleCount, others, gridInputRef }: Props) {
   };
 
   const send = () => {
-    if (!draft.trim() || running || status === "review") return;
+    if (status !== "idle") return; // 빈 지시는 ai.send가 거른다
     void ai.send(draft);
     setDraft("");
   };
@@ -102,7 +102,7 @@ export function AiPanel({ open, ai, staleCount, others, gridInputRef }: Props) {
           )}
           {messages.map((m) => (
             <Message key={m.id} $role={m.role}>
-              {textOf(m)}
+              {m.role === "error" ? ERRORS[m.code].text : m.text}
               {m === lastError && status === "idle" && m.role === "error" && ERRORS[m.code].retry && (
                 <InlineButton type="button" onClick={ai.retry}>
                   다시 시도
@@ -221,10 +221,6 @@ export function AiPanel({ open, ai, staleCount, others, gridInputRef }: Props) {
       </Panel>
     </Slot>
   );
-}
-
-function textOf(m: AiMessage) {
-  return m.role === "error" ? ERRORS[m.code].text : m.text;
 }
 
 const PANEL_W = 340;
