@@ -128,6 +128,8 @@ export function Grid({ actions, version, others, proposals, stale, onOpenAi, com
   };
 
   // 선택이 움직일 때는 셀을 다시 읽지 않는다. 문서가 바뀔 때만 다시 만든다.
+  // Y.Doc은 바뀌어도 참조가 같아 의존성으로 쓸 수 없다 — 문서 변경마다 오르는 version을 대신 의존성에 둔다
+  // (본문에서 쓰지 않으면 린트가 불필요한 의존성으로 보아 void로 읽는다).
   const cells = useMemo(() => {
     void version;
     const out = [];
