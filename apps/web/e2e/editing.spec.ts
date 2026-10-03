@@ -19,6 +19,24 @@ test("M1-A1·A2 입력 후 Enter, Tab 두 번 뒤 Enter는 시작 열로", async
   await expect(cell(page, 1, 0)).toHaveCSS("text-align", "right");
 });
 
+test("M1-A10 숫자 없이 기호만 있는 칸(-)은 글자처럼 왼쪽 정렬", async ({ context }) => {
+  const page = await openSheet(context);
+  await typeInto(page, 0, 0, "-");
+  await typeInto(page, 1, 0, "-5.5");
+  await expect(cell(page, 0, 0)).toHaveCSS("text-align", "left");
+  await expect(cell(page, 1, 0)).toHaveCSS("text-align", "right");
+});
+
+test("M1-B7 열·행 머리글을 더블클릭해도 편집 모드로 들어가지 않는다", async ({ context }) => {
+  const page = await openSheet(context);
+  await page.locator('[data-col="2"]:not([data-row])').dblclick();
+  await expect(nameBox(page)).toHaveText("C1:C100");
+  await expect(page.getByText("준비", { exact: true })).toBeVisible();
+  await page.locator('[data-row="4"]:not([data-col])').dblclick();
+  await expect(nameBox(page)).toHaveText("A5:Z5");
+  await expect(page.getByText("준비", { exact: true })).toBeVisible();
+});
+
 test("M1-A4·A6 F2는 이어 쓰기, Esc는 입력 취소", async ({ context }) => {
   const page = await openSheet(context);
   await typeInto(page, 0, 0, "hello");
@@ -156,3 +174,29 @@ test("M1-D7 Excel의 클래스 규칙 서식, 구글 시트의 글자 조각 서
   await expect(cell(page, 2, 1)).toHaveCSS("font-style", "italic");
 });
 
+
+test("M1-D10 셀 안 줄바꿈과 병합 칸을 살리고, 구글 문서의 굵지 않은 글은 굵게 바꾸지 않는다", async ({ context }) => {
+  const page = await openSheet(context);
+  // 시트·엑셀은 셀 안 줄바꿈을 HTML에선 <br>, 텍스트에선 따옴표로 담는다. 병합 칸은 colspan, 텍스트에선 빈 칸.
+  await cell(page, 0, 0).click();
+  await pasteHTML(
+    page,
+    '<table><tr><td colspan="2">병합</td><td style="font-weight:bold">굵게</td></tr><tr><td>줄1<br>줄2</td><td>b</td><td>c</td></tr></table>',
+    '병합\t\t굵게\n"줄1\n줄2"\tb\tc',
+  );
+  await expect(cell(page, 0, 2)).toHaveText("굵게");
+  await expect(cell(page, 0, 2)).toHaveCSS("font-weight", "700");
+  await expect(cell(page, 0, 1)).toHaveText("");
+  await expect(cell(page, 1, 0)).toHaveText("줄1\n줄2", { useInnerText: false });
+  await expect(cell(page, 1, 1)).toHaveText("b");
+
+  // 구글 문서는 굵지 않은 글도 <b style="font-weight:normal">로 감싼다 (2026-10-03 기준 형태)
+  await cell(page, 3, 0).click();
+  await pasteHTML(
+    page,
+    '<meta charset="utf-8"><b style="font-weight:normal;" id="docs-internal-guid-1"><span style="font-weight:400;">보통 글</span></b>',
+    "보통 글",
+  );
+  await expect(cell(page, 3, 0)).toHaveText("보통 글");
+  await expect(cell(page, 3, 0)).toHaveCSS("font-weight", "400");
+});

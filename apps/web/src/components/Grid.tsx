@@ -14,7 +14,8 @@ import { ContextMenu, type MenuItem } from "./ContextMenu";
 import { ProposalLayer } from "./ProposalLayer";
 import { RemoteCursors } from "./RemoteCursors";
 
-const NUMERIC = /^[-+]?(\d{1,3}(,\d{3})*|\d+)?(\.\d+)?%?$/;
+// 숫자가 하나는 있어야 한다 — "-"·"%"만 있는 칸은 글자다
+const NUMERIC = /^[-+]?(\d{1,3}(,\d{3})*(\.\d+)?|\d+(\.\d+)?|\.\d+)%?$/;
 
 type Props = {
   actions: SheetActions;
@@ -120,7 +121,8 @@ export function Grid({ actions, version, others, proposals, stale, onOpenAi, com
   ];
 
   const onDoubleClick = (e: MouseEvent) => {
-    if (!target(e)?.dataset.col) return;
+    const el = target(e);
+    if (!el?.dataset.row || !el.dataset.col) return; // 머리글은 편집하지 않는다
     commands.startEditing();
     inputRef.current?.focus();
   };
