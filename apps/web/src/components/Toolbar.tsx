@@ -90,7 +90,7 @@ const Button = styled.button<{ $format?: CellFormat }>`
   }
   &[aria-pressed="true"] {
     background: var(--primary-weak);
-    color: var(--primary);
+    color: var(--ink); /* 글자는 먹색 그대로 — 바탕만 눌림을 알린다 (사람 결정) */
   }
   &:disabled {
     color: var(--ink-faint);
