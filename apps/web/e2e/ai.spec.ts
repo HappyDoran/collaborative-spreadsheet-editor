@@ -68,6 +68,7 @@ test("M3-2 셀 단위 스트리밍 → 미리보기 → 적용 → 실행 취소
   await expect(cell(page, 1, 0)).toHaveText("1000");
   await expect(cell(page, 2, 0)).toHaveText("2500");
   await expect(cell(page, 10, 0)).toHaveText("");
+  await expect(page.getByRole("status").filter({ hasText: "AI 적용을 되돌렸어요." })).toBeVisible(); // 상태 표시줄
 });
 
 test("M3-3 생성 중 중지하면 받은 셀까지 버리고 시트는 그대로", async ({ context }) => {
@@ -124,8 +125,7 @@ test("M3-7 검토 중 원래 값이 바뀐 칸은 표시하고, 적용할 때 �
   const page = await openSheet(context);
   await seed(page);
   await ask(page, "확인 표시");
-  // 병렬 실행 부하에서 검토 단계 도착이 5초를 넘긴 적이 있다(실패 시점 화면에는 버튼이 떠 있었음)
-  await expect(panel(page).getByRole("button", { name: "적용", exact: true })).toBeVisible({ timeout: 10_000 });
+  await expect(panel(page).getByRole("button", { name: "적용", exact: true })).toBeVisible();
   await typeInto(page, 2, 0, "9999"); // 검토 중 A3를 직접 고침
   await expect(panel(page)).toContainText("1개 셀의 원래 값이 요청 뒤에 바뀌었어요. 적용할 때 그 칸은 건너뛰어요.");
   await expect(proposal(page, 2, 0)).toContainText("지금 9999 · 건너뜀"); // 칸 위에서도 지금 값이 보인다

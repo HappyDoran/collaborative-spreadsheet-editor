@@ -21,6 +21,7 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import type { Awareness } from "y-protocols/awareness";
 import type * as Y from "yjs";
 import { openSheetSession, type SheetSession } from "@/collab/sheetSession";
+import { useStatusStore } from "@/stores/statusStore";
 
 export type SheetActions = {
   read: (addr: CellAddress) => CellData | undefined;
@@ -103,8 +104,15 @@ export function useSheet(sheetId: string): SheetState {
       clearFormats: (range) => clearFormats(doc, range, origin),
       toggleFormat: (range, format) => toggleFormat(doc, range, format, origin),
       paste: (target, grid, mode) => writeGrid(doc, target, grid, origin, mode),
-      setValues: (entries) => setValues(doc, entries, origin),
-      undo: () => void undo.undo(),
+      // AI 적용: 실행 취소 단계에 이름을 붙여 되돌릴 때 무엇을 되돌렸는지 알린다 (captureTimeout 0 — 방금 쓴 단계가 마지막)
+      setValues: (entries) => {
+        setValues(doc, entries, origin);
+        undo.undoStack.at(-1)?.meta.set("label", "AI 적용");
+      },
+      undo: () => {
+        const label = undo.undo()?.meta.get("label");
+        if (label) useStatusStore.getState().show(`${label}을 되돌렸어요.`);
+      },
       redo: () => void undo.redo(),
     };
   }, [session, undo]);

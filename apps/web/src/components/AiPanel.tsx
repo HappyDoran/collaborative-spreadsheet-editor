@@ -51,7 +51,9 @@ export function AiPanel({ open, ai, staleCount, others, gridInputRef }: Props) {
   const target = status === "idle" ? resolveScope(scopeMode) : scope;
   const autoIsSheet = scopeMode === "auto" && target === null;
   // X3: 보내기 전, 내 대상이 다른 사람의 AI 생성·검토 범위와 겹치면 알린다 — 막지는 않는다 (DESIGN.md 15절)
+  // X3: 보내기 전에 다른 사람의 AI 작업 범위와 겹치면 알린다 (막지는 않는다)
   const overlapping = status === "idle" ? others.filter((p) => p.ai && scopesOverlap(target, p.ai.area)) : [];
+  const first = overlapping[0];
   const allStale = staleCount > 0 && staleCount === edits.length;
 
   // 새 메시지가 오면 맨 아래로
@@ -154,11 +156,10 @@ export function AiPanel({ open, ai, staleCount, others, gridInputRef }: Props) {
             send();
           }}
         >
-          {overlapping[0] && (
+          {first?.ai && (
             <Overlap role="status">
-              {overlapping[0].user.name}님이{" "}
-              {overlapping[0].ai!.area ? `${scopeLabel(overlapping[0].ai!.area)} 범위` : "시트 전체"}를 AI로{" "}
-              {overlapping[0].ai!.state === "generating" ? "만드는" : "검토하는"} 중이에요
+              {first.user.name}님이 {first.ai.area ? `${scopeLabel(first.ai.area)} 범위` : "시트 전체"}를 AI로{" "}
+              {first.ai.state === "generating" ? "생성하는" : "검토하는"} 중이에요
               {overlapping.length > 1 ? ` (외 ${overlapping.length - 1}명)` : ""}. 겹치는 칸은 먼저 적용한 쪽이 반영돼요.
             </Overlap>
           )}
