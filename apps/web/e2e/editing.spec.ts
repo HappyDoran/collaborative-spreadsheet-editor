@@ -106,3 +106,39 @@ test("M1-F1 새로고침 후 값·서식 유지", async ({ context }) => {
   await expect(cell(page, 0, 0)).toHaveText("saved");
   await expect(cell(page, 0, 0)).toHaveCSS("font-style", "italic");
 });
+
+// 다른 앱이 클립보드에 담는 HTML을 그대로 흉내 낸다 (서식 위치가 앱마다 다르다)
+const EXCEL_HTML =
+  "<html><head><style><!--td {padding:0px;}\n.xl65\n\t{mso-style-parent:style0;\n\tfont-weight:700;}\n.xl66\n\t{font-style:italic;}--></style></head>" +
+  "<body><table><tr><td class=xl65>엑셀 굵게</td><td class=xl66>엑셀 기울임</td></tr></table></body></html>";
+const SHEETS_HTML =
+  '<google-sheets-html-origin><style type="text/css"><!--td {border: 1px solid #cccccc;}--></style>' +
+  '<table><tbody><tr><td style="overflow:hidden;"><span style="font-size:10pt;font-weight:bold;">시트 굵게</span></td>' +
+  '<td style="overflow:hidden; font-style: italic;">시트 기울임</td></tr></tbody></table>';
+
+async function pasteHTML(page: import("@playwright/test").Page, html: string, text: string) {
+  await page.evaluate(
+    ([h, t]) =>
+      navigator.clipboard.write([
+        new ClipboardItem({ "text/html": new Blob([h], { type: "text/html" }), "text/plain": new Blob([t], { type: "text/plain" }) }),
+      ]),
+    [html, text],
+  );
+  await page.keyboard.press(`${MOD}+v`);
+}
+
+test("M1-D7 Excel의 클래스 규칙 서식, 구글 시트의 글자 조각 서식을 붙여넣기에서 살린다", async ({ context }) => {
+  const page = await openSheet(context);
+  await cell(page, 0, 0).click();
+  await pasteHTML(page, EXCEL_HTML, "엑셀 굵게\t엑셀 기울임");
+  await expect(cell(page, 0, 0)).toHaveText("엑셀 굵게");
+  await expect(cell(page, 0, 0)).toHaveCSS("font-weight", "700");
+  await expect(cell(page, 0, 1)).toHaveCSS("font-style", "italic");
+
+  await cell(page, 2, 0).click();
+  await pasteHTML(page, SHEETS_HTML, "시트 굵게\t시트 기울임");
+  await expect(cell(page, 2, 0)).toHaveText("시트 굵게");
+  await expect(cell(page, 2, 0)).toHaveCSS("font-weight", "700");
+  await expect(cell(page, 2, 1)).toHaveCSS("font-style", "italic");
+});
+

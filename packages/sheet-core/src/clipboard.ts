@@ -1,4 +1,4 @@
-import type { CellData } from "./sheet";
+import type { CellData, CellFormat } from "./sheet";
 
 // 엑셀·구글 시트와 같은 클립보드 형식: 탭으로 열, 줄바꿈으로 행을 나눈다.
 // 탭·줄바꿈·따옴표가 든 값은 큰따옴표로 감싸고 안의 따옴표는 두 번 쓴다.
@@ -53,3 +53,26 @@ export function toHTML(grid: CellData[][]): string {
   };
   return `<table>${grid.map((row) => `<tr>${row.map(td).join("")}</tr>`).join("")}</table>`;
 }
+
+// 다른 앱이 클립보드 HTML에 담은 서식 읽기 (DESIGN.md 7절 복사·붙여넣기).
+// 구글 시트는 칸·글자 조각의 style 속성에, Excel은 <style> 안의 클래스 규칙(.xl65 { font-weight:700 })에 담는다.
+
+// CSS 선언 문자열에서 굵게·기울임·밑줄. 공백·대소문자·숫자 굵기(600 이상)를 허용한다.
+export function formatsFromStyle(decls: string): Partial<Record<CellFormat, true>> {
+  const css = decls.toLowerCase().replace(/\s+/g, "");
+  const out: Partial<Record<CellFormat, true>> = {};
+  if (/font-weight:(bold|bolder|[6-9]00)/.test(css)) out.bold = true;
+  if (/font-style:(italic|oblique)/.test(css)) out.italic = true;
+  if (/text-decoration(-line)?:[^;]*underline/.test(css)) out.underline = true;
+  return out;
+}
+
+// <style> 텍스트의 클래스 규칙 → 클래스 이름별 선언. Excel의 `.xl65 { … }`, `td.xl65 { … }` 형태.
+export function cssClassRules(css: string): Map<string, string> {
+  const rules = new Map<string, string>();
+  for (const m of css.matchAll(/(?:^|[\s,}])[a-z]*\.([\w-]+)\s*\{([^}]*)\}/gi)) {
+    rules.set(m[1]!, `${rules.get(m[1]!) ?? ""};${m[2]}`);
+  }
+  return rules;
+}
+

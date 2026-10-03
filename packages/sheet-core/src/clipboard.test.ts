@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseTSV, toHTML, toTSV } from "./clipboard";
+import { cssClassRules, formatsFromStyle, parseTSV, toHTML, toTSV } from "./clipboard";
 
 describe("clipboard", () => {
   it("탭·줄바꿈으로 나눈 텍스트를 격자로 읽는다. 끝 줄바꿈과 CRLF를 무시한다", () => {
@@ -22,3 +22,25 @@ describe("clipboard", () => {
     );
   });
 });
+
+describe("다른 앱의 서식 읽기", () => {
+  it("구글 시트식 inline style — 공백·숫자 굵기·text-decoration-line 허용", () => {
+    expect(formatsFromStyle("overflow:hidden;font-weight:bold;")).toEqual({ bold: true });
+    expect(formatsFromStyle("font-weight: 700; font-style: italic")).toEqual({ bold: true, italic: true });
+    expect(formatsFromStyle("text-decoration-line: underline line-through")).toEqual({ underline: true });
+  });
+
+  it("굵기 400·normal, 기울임 normal, 밑줄 none은 서식이 아니다", () => {
+    expect(formatsFromStyle("font-weight:400;font-style:normal;text-decoration:none")).toEqual({});
+  });
+
+  it("Excel식 <style> 클래스 규칙을 클래스 이름별로 모은다", () => {
+    const css = "<!--td {padding:0px;}\n.xl65\n\t{mso-style-parent:style0;\n\tfont-weight:700;}\ntd.xl66 {font-style:italic;}\n.font5 {text-decoration:underline;}-->";
+    const rules = cssClassRules(css);
+    expect(formatsFromStyle(rules.get("xl65")!)).toEqual({ bold: true });
+    expect(formatsFromStyle(rules.get("xl66")!)).toEqual({ italic: true });
+    expect(formatsFromStyle(rules.get("font5")!)).toEqual({ underline: true });
+    expect(rules.has("td")).toBe(false);
+  });
+});
+

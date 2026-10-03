@@ -1,6 +1,6 @@
 "use client";
 
-import { FORMATS, parseTSV, toHTML, toTSV, type CellData, type CellFormat, type PasteMode } from "@sheet/core";
+import { cssClassRules, formatsFromStyle, parseTSV, toHTML, toTSV, type CellData, type CellFormat, type PasteMode } from "@sheet/core";
 import { useMemo, type ClipboardEvent, type KeyboardEvent } from "react";
 import { selectedRange, useSelectionStore } from "@/stores/selectionStore";
 import { useStatusStore } from "@/stores/statusStore";
@@ -227,23 +227,26 @@ function gridFromClipboard(html: string, text: string): CellData[][] {
   return tableFromHTML(html) ?? parseTSV(text).map((row) => row.map((value) => ({ value })));
 }
 
-// 클립보드 HTML의 첫 표를 읽는다. 이 앱·구글 시트처럼 서식을 inline style이나 b/i/u 태그로 담은 경우 서식도 살린다.
+// 클립보드 HTML의 첫 표를 읽는다. 서식은 칸과 그 안 글자 조각의 style 속성(구글 시트·이 앱),
+// <style> 클래스 규칙(Excel), b/i/u 태그를 모두 본다 — 판정은 core의 formatsFromStyle.
 // 표가 없으면(일반 웹 글 복사 등) null — 호출자가 텍스트로 대신 읽는다.
 function tableFromHTML(html: string): CellData[][] | null {
   if (!html) return null;
-  const table = new DOMParser().parseFromString(html, "text/html").querySelector("table");
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const table = doc.querySelector("table");
   if (!table) return null;
+  const classes = cssClassRules(Array.from(doc.querySelectorAll("style"), (el) => el.textContent ?? "").join("\n"));
+  const declsOf = (el: Element) =>
+    [...el.classList].map((c) => classes.get(c) ?? "").join(";") + ";" + (el.getAttribute("style") ?? "");
+  const TAGS: Record<CellFormat, string> = { bold: "b, strong", italic: "i, em", underline: "u" };
+
   const grid = Array.from(table.rows, (tr) =>
     Array.from(tr.cells, (td): CellData => {
-      const cell: CellData = { value: td.textContent ?? "" };
-      const style = (td.getAttribute("style") ?? "").toLowerCase();
-      const has = (tags: string) => td.querySelector(tags) !== null;
-      const on: Record<CellFormat, boolean> = {
-        bold: /font-weight:\s*(bold|[6-9]00)/.test(style) || has("b, strong"),
-        italic: style.includes("font-style:italic") || has("i, em"),
-        underline: style.includes("underline") || has("u"),
-      };
-      for (const f of FORMATS) if (on[f]) cell[f] = true;
+      const decls = [td, ...td.querySelectorAll("*")].map(declsOf).join(";");
+      const cell: CellData = { value: td.textContent ?? "", ...formatsFromStyle(decls) };
+      for (const [format, tags] of Object.entries(TAGS) as [CellFormat, string][]) {
+        if (td.querySelector(tags)) cell[format] = true;
+      }
       return cell;
     }),
   );
