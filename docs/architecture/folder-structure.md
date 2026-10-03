@@ -14,7 +14,7 @@ last_verified: 2026-10-03
 ├── CLAUDE.md -> AGENTS.md            # Claude용 진입 symlink
 ├── TECH_RULES.md                     # 스택·버전, 상태 소유권, 좌표·동기화·AI 규약, 금지
 ├── DESIGN.md                         # 설계 판단 근거
-├── README.md                         # 실행·검증 명령, 다중 탭 매트릭스
+├── README.md                         # 배포·체험 순서, 결정과 이유, 네트워크 확장, 실행·검증 명령
 ├── LLM_REPORT.md                     # LLM 활용 리포트
 ├── mise.toml                         # node·pnpm 버전 정본
 ├── .vercelignore                     # Vercel CLI 배포 업로드 제외 (로컬 비밀·금칙어·테스트 산출물)

@@ -24,7 +24,7 @@ last_verified: 2026-10-02
 | 사실 | 소유 문서 | 갱신을 유발하는 변경 |
 | --- | --- | --- |
 | 고정 스택·버전, 상태 소유권, 좌표·동기화·AI 규약, 구현 금지 | `TECH_RULES.md` | 의존성 추가·버전 변경, 규약 변경, 금지 패턴 추가 |
-| 프로젝트 개요, 실행·검증 명령, 수동 매트릭스(시나리오 ID별 결과), 배포 절차, 네트워크 확장 설계, 주요 의사결정 요약 | `README.md` | 기능·명령·검증 절차 변경 |
+| 프로젝트 개요, 실행·검증 명령, 배포 절차, 네트워크 확장 설계, 주요 의사결정 요약 | `README.md` | 기능·명령·검증 절차 변경 |
 | 요구사항 번호(E·C·A·X·T·D) | `docs/spec/requirements.md` | 요구사항 해석 변경 |
 | 요구사항 대비 현재 상태, 보완 백로그와 우선순위, 미결 결정 | `docs/spec/gap-analysis.md` | 백로그 항목 완료, 결정 확정, 재점검 |
 | 설계 판단 근거 (패키지 분리, 상태 소유권, 동기화 방식, 공동 편집×AI 정책) | `DESIGN.md` | 구조 판단 또는 정책 변경 |
@@ -32,7 +32,7 @@ last_verified: 2026-10-02
 | 현재 폴더·파일 책임 스냅샷 | `docs/architecture/folder-structure.md` | 파일 추가·이동·삭제 |
 | 검증 계층 (단위 테스트·타입·린트·빌드·구조 검사·다중 탭 매트릭스)과 테스트 필수 대상 | `.codex/skills/test-policy/SKILL.md` | 테스트 계층·필수 대상 변경 |
 | 커밋 제목·본문·작성 주체 표기 규칙 | `.codex/skills/git-commit/SKILL.md` | 표기·본문 규칙 변경 |
-| 수동 확인 시나리오 (단계·기대 결과, 자동/수동 구분) | `docs/manual-scenarios.md` | 사용자에게 보이는 동작 변경 |
+| 수동 확인 시나리오 (단계·기대 결과, 자동/수동 구분)와 확인 기록(시나리오 ID별 결과) | `docs/manual-scenarios.md` | 사용자에게 보이는 동작 변경 |
 | LLM 활용 기록 (도구, 역할 구분, 기각·수정 사례, 핵심 프롬프트) | `LLM_REPORT.md` | LLM 제안을 기각·수정한 즉시 |
 | 프롬프트 원본 기록 (잘 된 것·실패한 것과 이유) | `docs/prompts.md` | 결과가 기대와 크게 달랐던 프롬프트, 재사용할 프롬프트 |
 | AI Agent 작업 지원 체계 | `docs/AI_AGENT_HARNESS.md` | 진입점, 문서 소유권, skill, 검사 흐름 변경 |
@@ -78,7 +78,7 @@ last_verified: 2026-10-02
 
 1. 시작 전에 범위를 나눈다 — 동작 변경인지, 구조 변경인지, 정책(공동 편집×AI) 변경인지, 다중 탭 확인이 필요한지.
 2. 변경 범위의 소유 문서만 읽는다. 전부 읽지 않는다.
-3. 코드를 바꾸는 모든 작업은 `.codex/skills/test-policy/SKILL.md`를 적용한다 — core 순수 로직은 테스트를 함께 두고, `pnpm test`·`pnpm typecheck`·`pnpm lint`·`pnpm check`를 통과시키고, 런타임 동작이 바뀌면 다중 탭 수동 매트릭스를 남긴다.
+3. 코드를 바꾸는 모든 작업은 `.codex/skills/test-policy/SKILL.md`를 적용한다 — core 순수 로직은 테스트를 함께 두고, `pnpm test`·`pnpm typecheck`·`pnpm lint`·`pnpm check`를 통과시키고, 런타임 동작이 바뀌면 다중 탭 확인 결과를 `docs/manual-scenarios.md` 확인 기록에 남긴다.
 4. 사실이 바뀌면 문서 맵의 소유 문서를 같은 커밋에서 갱신하고 `last_verified`를 갱신 날짜로 맞춘다.
 5. 커밋은 의미 단위. 제목 끝에 작성 주체 `[llm]`/`[human]`/`[llm+human]`을 표기하고 본문에 사유와 검증을 남긴다 (`.codex/skills/git-commit/SKILL.md`).
 6. 완료 보고에는 실행한 검증과 실행하지 못한 검증을 구분해 적는다.

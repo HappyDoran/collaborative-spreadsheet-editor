@@ -17,7 +17,7 @@ description: 코드를 변경하는 모든 작업에서 적용하는 검증 규�
 | 빌드 | 서버·클라이언트 경계, 라우트 설정 | `pnpm build` | 라우트·설정·의존성 변경, 배포 전 |
 | 구조 검사 | 계층 import 규칙, 테스트 배치, 문서 symlink·경로·frontmatter, 비밀·금칙어 | `pnpm check` | 모든 변경 |
 | E2E (Playwright, Chromium) | 실제 브라우저의 키보드·클립보드 동작, 같은 브라우저 여러 탭의 동기화·참여자 표시·탭 종료·undo 범위 | `pnpm e2e` | 런타임 동작 변경 |
-| 브라우저 수동 | E2E로 재현할 수 없는 것 — 실제 한글 입력기, 외부 앱 클립보드, Safari, 보기·느낌 | 절차 `docs/manual-scenarios.md`, 결과 `README.md` 수동 매트릭스 | 런타임 동작 변경 |
+| 브라우저 수동 | E2E로 재현할 수 없는 것 — 실제 한글 입력기, 외부 앱 클립보드, Safari, 보기·느낌 | 절차·결과 `docs/manual-scenarios.md`(끝의 "확인 기록") | 런타임 동작 변경 |
 
 ## 테스트 위치와 범위
 
