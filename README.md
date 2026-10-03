@@ -2,7 +2,7 @@
 
 여러 브라우저 탭에서 같은 시트를 동시에 편집하고, AI에게 범위 편집을 제안받아 검토 후 적용하는 웹 스프레드시트.
 
-- 상태: 편집(M1)·공동 편집(M2)·AI 편집(M3) 구현. 진행 상황은 `docs/spec/gap-analysis.md`.
+- 상태: 편집(M1)·공동 편집(M2)·AI 편집(M3)·우클릭 메뉴(M3.5)·공동 편집 × AI(M4) 구현. 진행 상황은 `docs/spec/gap-analysis.md`.
 - 구조: pnpm workspace — 도메인 로직 `packages/sheet-core`, Next.js 앱 `apps/web`. 상세는 `docs/architecture/folder-structure.md`.
 
 ## 로컬 실행
@@ -18,6 +18,13 @@ pnpm dev                # http://localhost:3000
 ```
 
 AI 편집: 키는 서버에서만 읽는다(`apps/web/src/app/api/ai/route.ts`). 개발 서버는 **가짜 응답 모드**로 시작한다 — 왼쪽 위 버튼으로 실제 AI와 바꿀 수 있고, 배포본에서는 주소에 `?debug=1`을 붙였을 때만 그 버튼이 보인다. 키가 없어도 가짜 응답으로 전체 흐름을 볼 수 있다.
+
+배포본과 같은 결과(실제 AI가 기본, 디버깅 버튼 숨김)는 프로덕션 빌드로 실행한다. `OPENAI_API_KEY`가 필요하다.
+
+```bash
+pnpm build
+pnpm start              # http://localhost:3000
+```
 
 공동 편집 확인: 같은 브라우저에서 같은 주소를 탭 여러 개로 연다. `localhost`와 `127.0.0.1`은 서로 다른 origin이라 동기화되지 않는다.
 
