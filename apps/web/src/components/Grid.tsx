@@ -1,6 +1,6 @@
 "use client";
 
-import { SHEET_COLS, SHEET_ROWS, colToLabel, inScope, isSingleCell, type CellAddress, type ProposedEdit } from "@sheet/core";
+import { SHEET_COLS, SHEET_ROWS, colToLabel, inScope, isSingleCell, parseNumber, type CellAddress, type ProposedEdit } from "@sheet/core";
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type RefObject } from "react";
 import styled from "styled-components";
 import { useShallow } from "zustand/react/shallow";
@@ -14,8 +14,6 @@ import { ContextMenu, type MenuItem } from "./ContextMenu";
 import { ProposalLayer } from "./ProposalLayer";
 import { RemoteCursors } from "./RemoteCursors";
 
-// 숫자가 하나는 있어야 한다 — "-"·"%"만 있는 칸은 글자다
-const NUMERIC = /^[-+]?(\d{1,3}(,\d{3})*(\.\d+)?|\d+(\.\d+)?|\.\d+)%?$/;
 
 type Props = {
   actions: SheetActions;
@@ -254,7 +252,7 @@ const Cell = memo(function Cell({ row, col, value, bold, italic, underline }: Ce
       data-row={row}
       data-col={col}
       style={{ gridRow: row + 2, gridColumn: col + 2 }}
-      $numeric={NUMERIC.test(value)}
+      $numeric={parseNumber(value) !== null}
       $bold={bold}
       $italic={italic}
       $underline={underline}

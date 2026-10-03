@@ -1,6 +1,7 @@
 export * from "./address";
 export * from "./sheet";
 export * from "./clipboard";
+export * from "./number";
 export * from "./participants";
 export * from "./ai/types";
 export * from "./ai/proposal";

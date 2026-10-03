@@ -1,7 +1,7 @@
 "use client";
 
 import type { SheetActions } from "@/hooks/useSheet";
-import { forEachAddress } from "@sheet/core";
+import { forEachAddress, parseNumber } from "@sheet/core";
 import styled from "styled-components";
 import { useShallow } from "zustand/react/shallow";
 import { selectedRange, useSelectionStore, type EditMode } from "@/stores/selectionStore";
@@ -21,12 +21,13 @@ export function StatusBar({ actions }: { actions: SheetActions }) {
   let numbers = 0;
   let sum = 0;
   forEachAddress(range, (addr) => {
-    const value = actions.read(addr)?.value.replace(/,/g, "") ?? "";
+    const value = actions.read(addr)?.value ?? "";
     if (value === "") return;
     count++;
-    if (value.trim() !== "" && Number.isFinite(Number(value))) {
+    const n = parseNumber(value); // 정렬과 같은 판정 — 오른쪽 정렬된 칸만 합계에 든다
+    if (n !== null) {
       numbers++;
-      sum += Number(value);
+      sum += n;
     }
   });
 

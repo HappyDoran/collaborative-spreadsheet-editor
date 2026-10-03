@@ -39,10 +39,12 @@ last_verified: 2026-10-03
 │       ├── index.ts                  # 공개 API 재수출
 │       ├── address.ts                # 0 기준 좌표 ↔ A1, 열 라벨, 범위 정규화
 │       ├── address.test.ts           # 26진 경계, 잘못된 표기, 역방향 범위
-│       ├── sheet.ts                  # 문서 스키마(칸별 셀 맵), 값·서식·지우기·서식 지우기·붙여넣기(전부·값만·서식만) 연산, UndoManager 정책
-│       ├── sheet.test.ts             # 빈 셀 정리, 서식 토글, 붙여넣기 채우기·잘림, undo 단위, 두 탭 undo·동시 병합
+│       ├── sheet.ts                  # 문서 스키마(필드별 최상위 맵), 값·서식·지우기·서식 지우기·붙여넣기(전부·값만·서식만) 연산, UndoManager 정책
+│       ├── sheet.test.ts             # 빈 셀 정리, 서식 토글, 붙여넣기 채우기·잘림, undo 단위, 두 탭 undo·동시 병합(빈 칸 포함)
 │       ├── clipboard.ts              # TSV 직렬화·파싱(따옴표 규칙), 서식 HTML 표 생성
 │       ├── clipboard.test.ts         # CRLF, 따옴표 안 탭·줄바꿈, HTML 이스케이프
+│       ├── number.ts                 # 셀 글자 → 숫자 (정렬·상태 표시줄 합계 공용)
+│       ├── number.test.ts            # 쉼표·퍼센트·부호, 글자로 볼 표기
 │       ├── participants.ts           # 10색 팔레트, 빈 색 고르기, 이름 정규화·첫 글자, awareness 상태 타입
 │       ├── participants.test.ts      # 빈 색만 고르기, 이름 공백·길이, 한글·이모지 첫 글자
 │       └── ai/
