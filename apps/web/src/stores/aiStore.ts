@@ -23,6 +23,7 @@ type AiState = {
   excluded: number; // 대상 밖·잘못된 주소로 버린 제안 수
   messages: AiMessage[];
   lastInstruction: string;
+  lastScope: AiScope; // 다시 시도할 때 쓰는 마지막 요청의 대상
 };
 
 const IDLE_RUN: Pick<AiState, "status" | "scope" | "edits" | "excluded"> = {
@@ -42,6 +43,7 @@ export const useAiStore = create<AiState>()(
       ...IDLE_RUN,
       messages: [],
       lastInstruction: "",
+      lastScope: null,
     }),
     {
       name: "sheet:ai",

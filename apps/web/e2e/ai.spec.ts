@@ -219,3 +219,37 @@ test("M3-13 패널은 닫혀도 입력 중이던 지시를 남기고, 닫힌 동
   await page.keyboard.press(`${MOD}+k`);
   await expect(page.getByLabel("AI에게 할 일")).toHaveValue("나중에 보낼 지시");
 });
+
+test("M3-21 다시 시도는 실패한 요청의 범위로 보낸다 — 그 사이 선택을 옮겨도 같다", async ({ context }) => {
+  const page = await openSheet(context);
+  const scopes: unknown[] = [];
+  page.on("request", (r) => {
+    if (r.url().endsWith("/api/ai")) scopes.push(r.postDataJSON().scope);
+  });
+  await seed(page);
+  await ask(page, "x #invalid");
+  await expect(panel(page).getByRole("button", { name: "다시 시도" })).toBeVisible();
+  await cell(page, 0, 3).click(); // D1 한 칸 — 새 요청이면 시트 전체가 된다
+  await panel(page).getByRole("button", { name: "다시 시도" }).click();
+  await expect.poll(() => scopes.length).toBe(2);
+  expect(scopes[1]).toEqual({ start: { row: 1, col: 0 }, end: { row: 2, col: 0 } });
+  expect(scopes[1]).toEqual(scopes[0]);
+});
+
+test("M3-22 플랫폼 오류 페이지(504 HTML)는 연결 끊김이 아니라 AI 서비스 문제로 알린다", async ({ context }) => {
+  const page = await openSheet(context);
+  await page.route("**/api/ai", (route) =>
+    route.fulfill({ status: 504, contentType: "text/html", body: "<html><body>Gateway Timeout</body></html>" }),
+  );
+  await seed(page);
+  await ask(page, "x");
+  await expect(panel(page)).toContainText("AI 서비스에 문제가 생겼어요.");
+});
+
+test("M3-23 서버는 시트 밖 대상 범위를 거절한다 (요청 본문은 신뢰 경계 밖)", async ({ page }) => {
+  const response = await page.request.post("/api/ai", {
+    data: { instruction: "x", context: "", mock: true, scope: { start: { row: 0, col: 0 }, end: { row: 1e9, col: 1e6 } } },
+  });
+  expect(response.status()).toBe(400);
+  expect(await response.text()).toBe('{"type":"error","code":"invalid"}\n');
+});

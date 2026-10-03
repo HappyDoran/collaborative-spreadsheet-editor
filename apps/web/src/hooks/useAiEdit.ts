@@ -64,10 +64,10 @@ export function useAiEdit(actions: SheetActions) {
       }
     };
 
-    const send = async (input: string) => {
+    // scope를 주면(다시 시도) 그 범위로, 아니면 지금 선택으로 정한다
+    const send = async (input: string, scope = resolveScope(state().scopeMode)) => {
       const instruction = input.trim();
       if (!instruction || state().status !== "idle") return;
-      const scope = resolveScope(state().scopeMode);
       // 요청 순간의 값을 컨텍스트를 만들며 함께 기록한다 — AI가 보고 계산한 값이자
       // X1(원래 값이 바뀜) 판정의 기준 (DESIGN.md 15절). 빈 칸은 기록하지 않으므로 없으면 "".
       const snapshot = new Map<string, string>();
@@ -78,7 +78,7 @@ export function useAiEdit(actions: SheetActions) {
       }, scope);
       const readAtSend = (addr: CellAddress) => snapshot.get(cellKey(addr)) ?? "";
       pushMessage({ role: "user", text: instruction });
-      useAiStore.setState({ status: "reading", scope, edits: [], excluded: 0, lastInstruction: instruction });
+      useAiStore.setState({ status: "reading", scope, edits: [], excluded: 0, lastInstruction: instruction, lastScope: scope });
 
       const ctrl = new AbortController();
       controller.current = ctrl;
@@ -102,7 +102,10 @@ export function useAiEdit(actions: SheetActions) {
           },
         );
       } catch (error) {
-        if (!(error instanceof AbortedByUser)) throw error;
+        if (!(error instanceof AbortedByUser)) {
+          endRun(); // 버그로 끝나도 패널이 생성 중에 멈춰 있지 않게
+          throw error;
+        }
         if (leaving.current) return;
         pushMessage({ role: "notice", text: "생성을 멈췄어요. 시트는 바뀌지 않았어요." });
         endRun();
@@ -114,7 +117,8 @@ export function useAiEdit(actions: SheetActions) {
     return {
       send,
       stop: () => controller.current?.abort(),
-      retry: () => void send(state().lastInstruction),
+      // 실패한 요청과 같은 범위로 — 그 사이 선택을 옮겨도 대상이 바뀌지 않는다
+      retry: () => void send(state().lastInstruction, state().lastScope),
       // 제안 전체를 한 번에 결정한다 (DESIGN.md 13절). 적용은 transaction 하나 = 실행 취소 한 번 (A5).
       // 요청 뒤 원래 값이 바뀐 칸은 건너뛴다 — 사람의 최신 편집이 AI 제안보다 우선 (X1, DESIGN.md 15절).
       apply: () => {

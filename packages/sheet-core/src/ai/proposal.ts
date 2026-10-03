@@ -1,4 +1,4 @@
-import { parseA1, type CellAddress } from "../address";
+import { parseA1, type CellAddress, type CellRange } from "../address";
 import { isInsideSheet } from "../sheet";
 import type { AiScope, ProposedEdit } from "./types";
 
@@ -7,6 +7,17 @@ type Read = (addr: CellAddress) => string;
 export function inScope({ row, col }: CellAddress, scope: AiScope): boolean {
   if (!scope) return true;
   return row >= scope.start.row && row <= scope.end.row && col >= scope.start.col && col <= scope.end.col;
+}
+
+// 브라우저가 보낸 대상 범위 검증. 요청 본문은 신뢰 경계 밖이다 — 시트 밖 범위는 서버에서 무한 순회가 된다.
+export function isValidScope(scope: unknown): scope is AiScope {
+  if (scope === null) return true;
+  const isAddr = (a: unknown): a is CellAddress => {
+    const { row, col } = (a ?? {}) as CellAddress;
+    return Number.isInteger(row) && Number.isInteger(col) && isInsideSheet({ row, col });
+  };
+  const { start, end } = (scope ?? {}) as CellRange;
+  return isAddr(start) && isAddr(end) && start.row <= end.row && start.col <= end.col;
 }
 
 // 두 AI 대상이 겹치는가 (X3 경고). null은 시트 전체라 무엇과도 겹친다.

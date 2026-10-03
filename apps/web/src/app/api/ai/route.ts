@@ -1,6 +1,6 @@
 import { openai } from "@ai-sdk/openai";
 import { APICallError, Output, jsonSchema, streamText } from "ai";
-import { resolveModel, type AiErrorCode, type AiItem, type AiRequestBody, type AiStreamEvent } from "@sheet/core";
+import { isValidScope, resolveModel, type AiErrorCode, type AiItem, type AiRequestBody, type AiStreamEvent } from "@sheet/core";
 import { MockFailure, mockItems } from "./mock";
 import { SYSTEM_PROMPT, buildPrompt } from "./prompt";
 
@@ -10,7 +10,9 @@ import { SYSTEM_PROMPT, buildPrompt } from "./prompt";
 const MAX_INSTRUCTION_CHARS = 1_000;
 const MAX_CONTEXT_CHARS = 60_000; // 셀 600개 상한(sheetContext)과 별개로 문자 수도 막는다
 const MAX_OUTPUT_TOKENS = 6_000;
-const SILENCE_MS = 20_000; // 이 시간 동안 출력이 없으면 실패 — 브라우저의 무응답 판정과 같다
+const SILENCE_MS = 20_000; // 모델 출력이 이 시간 동안 없으면 실패 — 브라우저의 무응답 판정과 같다
+// 항목 하나가 완성돼야 줄을 보내므로, 긴 값을 쓰는 동안 브라우저가 무응답으로 오판하지 않게 빈 줄을 보낸다
+const KEEPALIVE_MS = 5_000;
 
 export const maxDuration = 120;
 
@@ -40,6 +42,7 @@ export async function POST(request: Request) {
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const send = (event: AiStreamEvent) => controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
+      const keepalive = setInterval(() => controller.enqueue(encoder.encode("\n")), KEEPALIVE_MS);
       try {
         for await (const item of items) {
           if (item.kind === "reply") send({ type: "reply", text: item.text });
@@ -50,6 +53,7 @@ export async function POST(request: Request) {
         // 브라우저가 중지·이탈해 끊긴 경우는 받을 사람이 없다
         if (!request.signal.aborted) send({ type: "error", code: errorCode(error) });
       } finally {
+        clearInterval(keepalive);
         controller.close();
       }
     },
@@ -84,7 +88,12 @@ async function readBody(request: Request): Promise<AiRequestBody | AiErrorCode> 
   } catch {
     return "invalid";
   }
-  if (typeof body?.instruction !== "string" || typeof body.context !== "string" || !body.instruction.trim()) {
+  if (
+    typeof body?.instruction !== "string" ||
+    typeof body.context !== "string" ||
+    !body.instruction.trim() ||
+    !isValidScope(body.scope)
+  ) {
     return "invalid";
   }
   if (body.instruction.length > MAX_INSTRUCTION_CHARS || body.context.length > MAX_CONTEXT_CHARS) return "too_large";

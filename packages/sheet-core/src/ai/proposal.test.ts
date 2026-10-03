@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { judgeEdit, scopesOverlap, staleEdits } from "./proposal";
+import { isValidScope, judgeEdit, scopesOverlap, staleEdits } from "./proposal";
 
 const scope = { start: { row: 1, col: 1 }, end: { row: 3, col: 2 } }; // B2:C4
 const values: Record<string, string> = { "1:1": "100" };
@@ -50,3 +50,24 @@ describe("scopesOverlap", () => {
   });
 });
 
+
+describe("isValidScope", () => {
+  it("null(시트 전체)과 시트 안의 정규화된 범위만 받는다", () => {
+    expect(isValidScope(null)).toBe(true);
+    expect(isValidScope(scope)).toBe(true);
+    expect(isValidScope({ start: { row: 0, col: 0 }, end: { row: 99, col: 25 } })).toBe(true);
+  });
+
+  it("시트 밖·뒤집힌 범위·모양이 틀린 값은 거른다", () => {
+    for (const bad of [
+      undefined,
+      "A1:B2",
+      {},
+      { start: { row: 0, col: 0 }, end: { row: 1e9, col: 1e6 } },
+      { start: { row: -1, col: 0 }, end: { row: 1, col: 1 } },
+      { start: { row: 3, col: 0 }, end: { row: 1, col: 1 } },
+      { start: { row: 0.5, col: 0 }, end: { row: 1, col: 1 } },
+      { start: { row: "0", col: 0 }, end: { row: 1, col: 1 } },
+    ]) expect(isValidScope(bad)).toBe(false);
+  });
+});
