@@ -1,13 +1,13 @@
 "use client";
 
-import { AI_MODELS, cellKey, scopesOverlap, toA1, type AiErrorCode, type AiModelId, type AiScope } from "@sheet/core";
+import { cellKey, type AiErrorCode } from "@sheet/core";
 import { useEffect, useRef, useState, type RefObject } from "react";
 import styled from "styled-components";
 import { useShallow } from "zustand/react/shallow";
-import { resolveScope, type AiCommands } from "@/hooks/useAiEdit";
+import type { AiCommands } from "@/hooks/useAiEdit";
 import type { Participant } from "@/hooks/usePresence";
 import { useAiStore, type AiMessage } from "@/stores/aiStore";
-import { useSelectionStore } from "@/stores/selectionStore";
+import { AiComposer, Button } from "./AiComposer";
 
 // 원인마다 사람이 할 일이 다르다 — 다시 시도로 풀리는지 함께 정한다 (DESIGN.md 13절)
 const ERRORS: Record<AiErrorCode, { text: string; retry: boolean }> = {
@@ -21,8 +21,6 @@ const ERRORS: Record<AiErrorCode, { text: string; retry: boolean }> = {
   config: { text: "AI 연결 설정에 문제가 있어요. 시트 편집은 계속할 수 있어요.", retry: false },
 };
 
-const scopeLabel = (scope: AiScope) => (scope ? `${toA1(scope.start)}:${toA1(scope.end)}` : "시트 전체");
-
 type Props = {
   open: boolean;
   ai: AiCommands;
@@ -34,26 +32,11 @@ type Props = {
 // 닫혀 있어도 마운트를 유지한다 — 닫는 애니메이션을 보이고, 입력 중이던 지시도 남긴다.
 // 닫힌 동안은 inert라 키보드·스크린리더가 들어가지 않는다.
 export function AiPanel({ open, ai, staleCount, others, gridInputRef }: Props) {
-  const { status, scope, edits, messages, mock, scopeMode, model } = useAiStore(
-    useShallow((s) => ({
-      status: s.status,
-      scope: s.scope,
-      edits: s.edits,
-      messages: s.messages,
-      mock: s.mock,
-      scopeMode: s.scopeMode,
-      model: s.model,
-    })),
+  const { status, edits, messages, mock } = useAiStore(
+    useShallow((s) => ({ status: s.status, edits: s.edits, messages: s.messages, mock: s.mock })),
   );
-  useSelectionStore(useShallow((s) => [s.active, s.extent])); // 대기 중 대상 표시가 선택을 따라가게
-  const [draft, setDraft] = useState("");
+  const [draft, setDraft] = useState(""); // 입력 중인 지시 — 빈 패널의 예시 버튼도 채운다
   const running = status === "reading" || status === "streaming";
-  const target = status === "idle" ? resolveScope(scopeMode) : scope;
-  const autoIsSheet = scopeMode === "auto" && target === null;
-  // X3: 보내기 전, 내 대상이 다른 사람의 AI 생성·검토 범위와 겹치면 알린다 — 막지는 않는다 (DESIGN.md 15절)
-  // X3: 보내기 전에 다른 사람의 AI 작업 범위와 겹치면 알린다 (막지는 않는다)
-  const overlapping = status === "idle" ? others.filter((p) => p.ai && scopesOverlap(target, p.ai.area)) : [];
-  const first = overlapping[0];
   const allStale = staleCount > 0 && staleCount === edits.length;
 
   // 새 메시지가 오면 맨 아래로
@@ -73,12 +56,6 @@ export function AiPanel({ open, ai, staleCount, others, gridInputRef }: Props) {
   const showNext = () => {
     const boxes = document.querySelectorAll("[data-proposal]");
     boxes[cursor.current++ % Math.max(boxes.length, 1)]?.scrollIntoView({ block: "center", inline: "center", behavior: "smooth" });
-  };
-
-  const send = () => {
-    if (status !== "idle") return; // 빈 지시는 ai.send가 거른다
-    void ai.send(draft);
-    setDraft("");
   };
 
   const lastError = messages.at(-1)?.role === "error" ? messages.at(-1) : null;
@@ -165,75 +142,13 @@ export function AiPanel({ open, ai, staleCount, others, gridInputRef }: Props) {
           </Review>
         )}
 
-        <Composer
-          onSubmit={(e) => {
-            e.preventDefault();
-            send();
-          }}
-        >
-          {first?.ai && (
-            <Overlap role="status">
-              {first.user.name}님이 {first.ai.area ? `${scopeLabel(first.ai.area)} 범위` : "시트 전체"}를 AI로{" "}
-              {first.ai.state === "generating" ? "생성하는" : "검토하는"} 중이에요
-              {overlapping.length > 1 ? ` (외 ${overlapping.length - 1}명)` : ""}. 겹치는 칸은 먼저 적용한 쪽이 반영돼요.
-            </Overlap>
-          )}
-          <ScopeRow>
-            <span>
-              대상: <strong>{scopeLabel(target)}</strong>
-            </span>
-            <Segmented role="group" aria-label="AI 대상">
-              {(["selection", "sheet"] as const).map((mode) => (
-                <Segment
-                  key={mode}
-                  type="button"
-                  disabled={status !== "idle"}
-                  aria-pressed={scopeMode === mode || (scopeMode === "auto" && (mode === "sheet") === autoIsSheet)}
-                  onClick={() => useAiStore.setState({ scopeMode: mode })}
-                >
-                  {mode === "selection" ? "선택 범위만" : "시트 전체"}
-                </Segment>
-              ))}
-            </Segmented>
-          </ScopeRow>
-          <Input
-            id="ai-input"
-            aria-label="AI에게 할 일"
-            rows={3}
-            placeholder="예: 금액 열에 부가세 10% 더하기"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.nativeEvent.isComposing || e.keyCode === 229) return; // 한글 조합 중 Enter는 IME 몫
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                send();
-              } else if (e.key === "Escape") {
-                e.preventDefault();
-                gridInputRef.current?.focus();
-              }
-            }}
-          />
-          <ComposerFoot>
-            <ModelSelect
-              aria-label="AI 모델"
-              title={AI_MODELS.find((m) => m.id === model)?.hint}
-              value={model}
-              disabled={status !== "idle"}
-              onChange={(e) => useAiStore.setState({ model: e.target.value as AiModelId })}
-            >
-              {AI_MODELS.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.label} ({m.id})
-                </option>
-              ))}
-            </ModelSelect>
-            <Button type="submit" $primary disabled={!draft.trim() || status !== "idle"}>
-              보내기
-            </Button>
-          </ComposerFoot>
-          <Hint>Enter로 보내고 Shift+Enter로 줄을 바꿔요</Hint>
-        </Composer>
+        <AiComposer
+          ai={ai}
+          others={others}
+          draft={draft}
+          onDraftChange={setDraft}
+          gridInputRef={gridInputRef}
+        />
       </Panel>
     </Slot>
   );
@@ -422,27 +337,6 @@ const Actions = styled.div`
   margin-top: 2px;
 `;
 
-const Button = styled.button<{ $primary?: boolean }>`
-  height: 30px;
-  padding: 0 12px;
-  border: 1px solid ${(p) => (p.$primary ? "var(--ink)" : "var(--rule)")};
-  border-radius: 4px;
-  background: ${(p) => (p.$primary ? "var(--ink)" : "#fff")};
-  color: ${(p) => (p.$primary ? "#fff" : "var(--ink)")};
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-
-  &:disabled {
-    opacity: 0.4;
-    cursor: default;
-  }
-  &:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
-`;
-
 const InlineButton = styled.button`
   margin-left: 6px;
   padding: 0;
@@ -458,111 +352,4 @@ const Summary = styled.div`
   display: flex;
   align-items: baseline;
   font-variant-numeric: tabular-nums;
-`;
-
-const Composer = styled.form`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 10px 14px 12px;
-  border-top: 1px solid var(--rule);
-`;
-
-const Overlap = styled.p`
-  margin: 0;
-  padding: 6px 8px;
-  border-left: 3px solid var(--marker-edge);
-  background: color-mix(in srgb, var(--marker) 50%, var(--paper));
-  color: var(--ink);
-  font-size: 12px;
-  line-height: 1.5;
-`;
-
-const ScopeRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  color: var(--ink-muted);
-  font-size: 12px;
-
-  strong {
-    color: var(--ink);
-  }
-`;
-
-const Segmented = styled.div`
-  display: flex;
-  border: 1px solid var(--rule);
-  border-radius: 4px;
-  overflow: hidden;
-`;
-
-const Segment = styled.button`
-  padding: 3px 8px;
-  border: 0;
-  background: #fff;
-  color: var(--ink-muted);
-  font: inherit;
-  font-size: 12px;
-  cursor: pointer;
-
-  & + & {
-    border-left: 1px solid var(--rule);
-  }
-  &[aria-pressed="true"] {
-    background: var(--ink);
-    color: #fff;
-  }
-  &:disabled {
-    cursor: default;
-    opacity: 0.6;
-  }
-`;
-
-const Input = styled.textarea`
-  resize: none;
-  padding: 8px 10px;
-  border: 1px solid var(--rule);
-  border-radius: 4px;
-  background: #fff;
-  color: var(--ink);
-  font: inherit;
-  line-height: 1.5;
-
-  &:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: -1px;
-  }
-`;
-
-const ComposerFoot = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
-
-const ModelSelect = styled.select`
-  max-width: 200px;
-  height: 30px;
-  padding: 0 6px;
-  border: 1px solid var(--rule);
-  border-radius: 4px;
-  background: #fff;
-  color: var(--ink);
-  font: inherit;
-  font-size: 12px;
-
-  &:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 1px;
-  }
-  &:disabled {
-    opacity: 0.6;
-  }
-`;
-
-const Hint = styled.span`
-  color: var(--ink-muted);
-  font-size: 11px;
 `;
