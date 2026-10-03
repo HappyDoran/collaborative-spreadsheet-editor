@@ -5,6 +5,10 @@
 - 구현 범위: 엑셀식 편집(선택·입력·키보드 이동·서식 단축키·복사/붙여넣기·실행 취소, 새로고침·재접속 후 유지), 탭 간 공동 편집(참여자 이름·색·목록, 다른 사람의 선택·입력 중 표시, 내 변경만 실행 취소), AI 편집(셀 단위 스트리밍·중지·미리보기·적용/버리기·한 번에 되돌리기), 공동 편집과 AI가 겹치는 상황의 정책, 우클릭 메뉴.
 - 구조: pnpm workspace — 도메인 로직 `packages/sheet-core`, Next.js 앱 `apps/web`. 상세는 `docs/architecture/folder-structure.md`. 진행 기록은 `docs/spec/gap-analysis.md`.
 
+**읽는 순서**
+- 문서: 이 README(배포·체험 순서, 결정과 이유, 네트워크 확장, 실행) → 결정의 자세한 근거와 검토한 대안은 `DESIGN.md`(README 표의 절 번호) → LLM을 어떻게 썼는지는 `LLM_REPORT.md`. 그 밖의 루트 문서(`AGENTS.md`·`CLAUDE.md`·`TECH_RULES.md`)와 `docs/`, `.codex/`는 AI Agent가 작업할 때 읽는 규칙 문서다.
+- 코드: `packages/sheet-core/src/sheet.ts`(셀 스키마·연산·실행 취소 범위) → `apps/web/src/collab/broadcastProvider.ts`(탭 간 동기화) → `apps/web/src/hooks/useSheet.ts`·`useSheetCommands.ts`(편집) → `apps/web/src/hooks/useAiEdit.ts`·`apps/web/src/app/api/ai/route.ts`(AI 흐름) → `packages/sheet-core/src/ai/proposal.ts`(제안 판정·충돌). 각 core 모듈 옆의 `*.test.ts`가 동작 명세다.
+
 ## 배포
 
 https://collab-sheet-gamma.vercel.app — 가입·로그인 없이 바로 쓴다 (Vercel, 실제 AI 연결).
