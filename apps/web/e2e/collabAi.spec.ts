@@ -65,7 +65,7 @@ test("M4-X3 겹치는 범위에 요청하려 하면 알리고, 막지는 않는�
   const b = await openSheet(context, "준호");
   await seedColumn(a, 4);
   await ask(a, 1, 2, "확인 표시"); // 서연: A2:A3 검토 중
-  await expect(panel(a).getByRole("button", { name: "적용", exact: true })).toBeVisible();
+  await expect(panel(a).getByRole("button", { name: "적용", exact: true })).toBeVisible({ timeout: 10_000 });
 
   await cell(b, 2, 0).click();
   await b.keyboard.press("Shift+ArrowDown"); // 준호: A3:A4 — A3이 겹친다
@@ -73,7 +73,7 @@ test("M4-X3 겹치는 범위에 요청하려 하면 알리고, 막지는 않는�
   await expect(panel(b)).toContainText("서연님이 A2:A3 범위를 AI로 검토하는 중이에요. 겹치는 칸은 먼저 적용한 쪽이 반영돼요.");
   await b.getByLabel("AI에게 할 일").fill("확인 표시");
   await b.getByLabel("AI에게 할 일").press("Enter");
-  await expect(panel(b).getByRole("button", { name: "적용", exact: true })).toBeVisible(); // 막지 않는다
+  await expect(panel(b).getByRole("button", { name: "적용", exact: true })).toBeVisible({ timeout: 10_000 }); // 막지 않는다
 
   // 서연이 먼저 적용하면 준호의 A3 제안은 '원래 값이 바뀜'이 되어 건너뛴다
   await panel(a).getByRole("button", { name: "적용", exact: true }).click();

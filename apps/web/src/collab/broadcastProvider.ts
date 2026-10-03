@@ -61,7 +61,25 @@ export function connectBroadcast(channelName: string, doc: Y.Doc, awareness: Awa
   window.addEventListener("pagehide", onPageHide);
   window.addEventListener("pageshow", onPageShow);
 
+  // 다시 보이면 맞춘다: 오래 가려진 탭은 브라우저가 타이머를 늦추거나 얼려(15초 갱신이 밀려)
+  // 다른 탭 목록에서 만료됐거나 메시지를 놓쳤을 수 있다. 내 상태를 다시 알리고 합류 인사를 다시 보내
+  // 놓친 문서 변경과 다른 참여자 상태를 받는다 — 재연결 때 다시 동기화하는 것과 같은 방식.
+  let lastResync = 0;
+  const resync = () => {
+    if (document.visibilityState !== "visible" || Date.now() - lastResync < 1_000) return; // focus·visibilitychange가 함께 와도 한 번
+    lastResync = Date.now();
+    const local = awareness.getLocalState();
+    if (local) awareness.setLocalState(local);
+    post({ type: "hello", stateVector: Y.encodeStateVector(doc) });
+  };
+  document.addEventListener("visibilitychange", resync);
+  document.addEventListener("resume", resync);
+  window.addEventListener("focus", resync);
+
   return () => {
+    document.removeEventListener("visibilitychange", resync);
+    document.removeEventListener("resume", resync);
+    window.removeEventListener("focus", resync);
     window.removeEventListener("pagehide", onPageHide);
     window.removeEventListener("pageshow", onPageShow);
     removeAwarenessStates(awareness, [doc.clientID], "disconnect");

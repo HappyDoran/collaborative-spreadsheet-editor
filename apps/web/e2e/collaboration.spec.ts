@@ -138,3 +138,31 @@ test("M2-N5·N7 이름 바꾸기·지우기는 그 탭에만, 바꾼 이름은 �
   await expect(nameDialog(b)).toHaveCount(0);
   await expect(myAvatar(b)).toHaveAttribute("aria-label", /접속 중 1명/);
 });
+
+test("M2-C9 가려진 동안 놓친 변경·위치를 탭이 다시 보일 때 따라잡는다", async ({ context }) => {
+  // 오래 가려진 탭이 메시지를 놓친 상황을 만든다: 탭 B는 받은 메시지를 버리다가 다시 받는다
+  await context.addInitScript(() => {
+    const w = window as unknown as { dropIncoming: boolean };
+    w.dropIncoming = false;
+    const Original = window.BroadcastChannel;
+    window.BroadcastChannel = class extends Original {
+      set onmessage(handler: ((e: MessageEvent) => void) | null) {
+        super.onmessage = handler && ((e: MessageEvent) => !w.dropIncoming && handler(e));
+      }
+    } as typeof BroadcastChannel;
+  });
+  const a = await openSheet(context, "서연");
+  const b = await openSheet(context, "준호");
+  await b.evaluate(() => ((window as unknown as { dropIncoming: boolean }).dropIncoming = true));
+
+  await typeInto(a, 4, 2, "가려진 동안 입력"); // C5, 포인터는 C6
+  await expect(cell(b, 4, 2)).toHaveText(""); // B는 놓쳤다
+
+  await b.evaluate(() => {
+    (window as unknown as { dropIncoming: boolean }).dropIncoming = false;
+    document.dispatchEvent(new Event("visibilitychange")); // 탭으로 돌아옴
+  });
+  await expect(cell(b, 4, 2)).toHaveText("가려진 동안 입력");
+  await myAvatar(b).click();
+  await expect(b.locator("#participant-panel")).toContainText("서연C6");
+});
