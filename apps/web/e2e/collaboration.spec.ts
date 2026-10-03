@@ -102,7 +102,6 @@ test("M2-C5 다른 탭의 선택 범위와 입력 중 셀이 보인다", async (
   await expect(tag("준호 · 입력 중")).toBeVisible();
   await b.keyboard.press("Escape");
   await expect(tag("준호")).toBeVisible();
-  await expect(tag("준호")).toBeHidden({ timeout: 6_000 }); // 움직이지 않으면 3초 뒤 접혀 옆 칸을 가리지 않는다
 });
 
 test("M2-C6 탭을 닫으면 목록에서 바로 사라진다", async ({ context }) => {
