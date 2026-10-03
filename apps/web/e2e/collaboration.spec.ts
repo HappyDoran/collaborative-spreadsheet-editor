@@ -33,14 +33,13 @@ test("M2-N3 새로고침해도 이 탭의 이름·색이 유지되고 이름 화
   expect(await colorOf(page)).toBe(color);
 });
 
-test("M2-N4·C1·C2 새 탭: 접속 중인 이름이면 번호를 붙여 제안, 같은 이름도 허용·다른 색, 합류 시 내용, 실시간", async ({ context }) => {
+test("M2-N4·C1·C2 새 탭: 마지막 이름이 미리 채워진 이름 화면, 같은 이름 허용·다른 색, 합류 시 내용, 실시간", async ({ context }) => {
   const a = await openSheet(context, "김서연");
   await typeInto(a, 0, 0, "from A");
 
   const b = await context.newPage();
   await b.goto("/");
-  await expect(nameDialog(b).getByLabel("이름")).toHaveValue("김서연 2"); // 마지막 이름이 접속 중
-  await nameDialog(b).getByLabel("이름").fill("김서연"); // 고쳐 쓰면 같은 이름도 허용
+  await expect(nameDialog(b).getByLabel("이름")).toHaveValue("김서연");
   await nameDialog(b).getByRole("button", { name: "시작하기" }).click();
   await expect(myAvatar(b)).toHaveText("김");
   expect(await colorOf(a)).not.toBe(await colorOf(b));
@@ -48,18 +47,6 @@ test("M2-N4·C1·C2 새 탭: 접속 중인 이름이면 번호를 붙여 제안,
 
   await typeInto(b, 1, 1, "from B");
   await expect(cell(a, 1, 1)).toHaveText("from B");
-});
-
-test("M2-N4b 번호가 붙은 이름으로 들어온 뒤 새 탭은 다음 번호를 제안한다 ('2 2'가 아니라 3)", async ({ context }) => {
-  await openSheet(context, "김서연");
-  const b = await context.newPage();
-  await b.goto("/");
-  await expect(nameDialog(b).getByLabel("이름")).toHaveValue("김서연 2");
-  await nameDialog(b).getByRole("button", { name: "시작하기" }).click(); // 제안 그대로 → 마지막 이름 "김서연 2"
-  await expect(myAvatar(b)).toBeVisible();
-  const c = await context.newPage();
-  await c.goto("/");
-  await expect(nameDialog(c).getByLabel("이름")).toHaveValue("김서연 3");
 });
 
 test("M2-C3 같은 셀에 값과 서식을 동시에 바꾸면 둘 다 남는다", async ({ context }) => {
@@ -156,7 +143,7 @@ test("M2-N5·N7 이름 바꾸기·지우기는 그 탭에만, 바꾼 이름은 �
 
   const c = await context.newPage();
   await c.goto("/");
-  await expect(nameDialog(c).getByLabel("이름")).toHaveValue("이준 2"); // 바꾼 이름이 기본값 — 탭 a가 쓰는 중이라 번호
+  await expect(nameDialog(c).getByLabel("이름")).toHaveValue("이준");
   await c.close();
 
   await panel.getByRole("button", { name: "이름 지우기" }).click();
