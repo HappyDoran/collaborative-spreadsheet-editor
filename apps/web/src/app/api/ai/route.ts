@@ -1,6 +1,6 @@
 import { openai } from "@ai-sdk/openai";
 import { APICallError, Output, jsonSchema, streamText } from "ai";
-import { isValidScope, resolveModel, type AiErrorCode, type AiItem, type AiRequestBody, type AiStreamEvent } from "@sheet/core";
+import { isValidScope, recentTurns, resolveModel, type AiErrorCode, type AiItem, type AiRequestBody, type AiStreamEvent } from "@sheet/core";
 import { Failure, mockItems } from "./mock";
 import { SYSTEM_PROMPT, buildPrompt } from "./prompt";
 
@@ -91,7 +91,9 @@ async function readBody(request: Request): Promise<AiRequestBody | AiErrorCode> 
     return "invalid";
   }
   if (body.instruction.length > MAX_INSTRUCTION_CHARS || body.context.length > MAX_CONTEXT_CHARS) return "too_large";
-  return body;
+  const history = recentTurns(body.history);
+  if (!history) return "invalid";
+  return { ...body, history };
 }
 
 function errorCode(error: unknown): AiErrorCode {

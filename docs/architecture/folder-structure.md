@@ -51,7 +51,7 @@ last_verified: 2026-10-03
 │           ├── types.ts              # 서버·브라우저 공용 계약: 대상, 모델 출력 항목, NDJSON 이벤트, 오류 코드, 제안
 │           ├── proposal.ts           # 모델이 보낸 셀 판정(주소·대상·변화 없음), 원래 값이 바뀐 제안, 대상 겹침(X3)
 │           ├── proposal.test.ts
-│           ├── context.ts            # AI에게 보낼 시트 내용 — 값 있는 셀만, 대상 먼저, 600셀 상한
+│           ├── context.ts            # AI에게 보낼 시트 내용(값 있는 셀만, 대상 먼저, 600셀 상한), 이전 대화 검증·축약(최근 6턴)
 │           ├── context.test.ts
 │           ├── models.ts             # 고를 수 있는 모델 목록·기본 모델, 목록 밖 이름을 기본으로(resolveModel)
 │           └── models.test.ts

@@ -12,9 +12,12 @@ export const SYSTEM_PROMPT = `너는 웹 스프레드시트의 편집 도우미�
 - 바꿀 셀이 없는 요청(요약, 질문)이면 reply만 보낸다.
 - reply는 사용자가 쓴 언어로 쓴다.`;
 
-export function buildPrompt({ instruction, scope, context }: AiRequestBody): string {
+// history는 route가 recentTurns로 검증·축약한 것. 시트 내용은 지금 값이 최신이고, 이전 대화는 지시의 맥락으로만 쓴다.
+export function buildPrompt({ instruction, scope, context, history = [] }: AiRequestBody): string {
   const target = scope ? `${toA1(scope.start)}:${toA1(scope.end)}` : "시트 전체";
+  const turns = history.map((t) => `${t.role === "user" ? "사용자" : "AI"}: ${t.text}`);
   return [
+    ...(turns.length ? ["이전 대화 (지시의 맥락. 셀 값은 아래 시트 내용이 최신):", ...turns, ""] : []),
     `대상 범위: ${target}`,
     "",
     "시트 내용 (값이 있는 셀만, 주소: 값):",

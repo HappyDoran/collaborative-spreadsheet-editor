@@ -76,6 +76,10 @@ export function useAiEdit(actions: SheetActions) {
         return value;
       }, scope);
       const readAtSend = (addr: CellAddress) => snapshot.get(cellKey(addr)) ?? "";
+      // 이전 대화 — "아니, C열로" 같은 후속 지시가 앞 맥락을 알게 (서버가 최근 몇 턴만 남긴다)
+      const history = state().messages.flatMap((m) =>
+        m.role === "user" || m.role === "ai" ? [{ role: m.role, text: m.text }] : [],
+      );
       pushMessage({ role: "user", text: instruction });
       useAiStore.setState({ status: "reading", scope, edits: [], excluded: 0, lastInstruction: instruction, lastScope: scope });
 
@@ -83,7 +87,7 @@ export function useAiEdit(actions: SheetActions) {
       controller.current = ctrl;
       try {
         await streamAiEdit(
-          { instruction, scope, context, mock: state().mock, model: state().model },
+          { instruction, history, scope, context, mock: state().mock, model: state().model },
           {
             signal: ctrl.signal,
             onEvent: (event) => {

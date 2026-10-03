@@ -25,8 +25,12 @@ export type AiStreamEvent =
   | { type: "done" }
   | { type: "error"; code: AiErrorCode };
 
+// 이전 대화 한 턴 — 후속 지시("아니, C열로")가 앞 맥락을 알게 한다
+export type AiTurn = { role: "user" | "ai"; text: string };
+
 export type AiRequestBody = {
   instruction: string;
+  history?: AiTurn[]; // 직전 대화, 오래된 것부터. 서버가 recentTurns로 개수·길이를 자른다
   scope: AiScope;
   context: string; // sheetContext() 결과
   mock?: boolean; // 가짜 응답 모드 (디버깅·자동 테스트)
