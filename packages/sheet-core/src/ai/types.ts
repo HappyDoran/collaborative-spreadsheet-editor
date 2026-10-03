@@ -30,6 +30,7 @@ export type AiRequestBody = {
   scope: AiScope;
   context: string; // sheetContext() 결과
   mock?: boolean; // 가짜 응답 모드 (디버깅·자동 테스트)
+  model?: string; // 고른 모델 — 서버가 허용 목록(models.ts)으로 검증한다
 };
 
 export type ProposedEdit = { addr: CellAddress; before: string; after: string };

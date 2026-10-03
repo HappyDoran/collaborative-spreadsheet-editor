@@ -132,7 +132,7 @@ function Editor({ actions, awareness, version, canUndo, canRedo, name, color }: 
           commands={commands}
           inputRef={inputRef}
         />
-        {aiOpen && <AiPanel ai={ai} staleCount={stale.size} gridInputRef={inputRef} />}
+        <AiPanel open={aiOpen} ai={ai} staleCount={stale.size} gridInputRef={inputRef} />
       </Workspace>
       <StatusBar actions={actions} />
     </>

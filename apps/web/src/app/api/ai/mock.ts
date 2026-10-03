@@ -1,4 +1,4 @@
-import { parseA1, toA1, forEachAddress, inScope, type AiItem, type AiRequestBody } from "@sheet/core";
+import { parseA1, resolveModel, toA1, forEachAddress, inScope, type AiItem, type AiRequestBody } from "@sheet/core";
 
 // 가짜 응답 (DESIGN.md 13절). 크레딧 없이 실제와 같은 항목 흐름을 시간차로 낸다 — 자동 테스트와 디버깅용.
 // 지시에 다음 표시가 있으면 해당 상황을 흉내 낸다: #quota(한도 소진) #invalid(형식 오류) #empty(바꿀 셀 없음)
@@ -22,7 +22,7 @@ export async function* mockItems(body: AiRequestBody, signal: AbortSignal): Asyn
 
   await wait(gap);
   if (has("#quota")) throw new MockFailure("quota");
-  yield { kind: "reply", cell: "", text: "가짜 응답이에요. 대상 셀 값 뒤에 ✓를 붙여 볼게요." };
+  yield { kind: "reply", cell: "", text: `가짜 응답이에요(${resolveModel(body.model)}). 대상 셀 값 뒤에 ✓를 붙여 볼게요.` };
   if (has("#empty")) return;
 
   const known = new Map<string, string>();

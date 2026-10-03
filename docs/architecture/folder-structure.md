@@ -49,7 +49,9 @@ last_verified: 2026-10-02
 │           ├── proposal.ts           # 모델이 보낸 셀 판정(주소·대상·변화 없음), 검토 중 원래 값이 바뀐 제안
 │           ├── proposal.test.ts
 │           ├── context.ts            # AI에게 보낼 시트 내용 — 값 있는 셀만, 대상 먼저, 600셀 상한
-│           └── context.test.ts
+│           ├── context.test.ts
+│           ├── models.ts             # 고를 수 있는 모델 목록·기본 모델, 목록 밖 이름을 기본으로(resolveModel)
+│           └── models.test.ts
 └── apps/web/                         # @sheet/web — Next.js 15.5 App Router
     ├── next.config.ts                # transpilePackages: @sheet/core, styled-components SWC
     ├── playwright.config.ts          # E2E: Chromium, 3100번 포트 dev 서버, 테스트마다 새 컨텍스트
@@ -57,7 +59,7 @@ last_verified: 2026-10-02
     │   ├── sheet.ts                  # 공용 조작 (시트 열기·이름 지정·셀·이름 상자·아바타)
     │   ├── editing.spec.ts           # M1 편집·선택·서식·클립보드·undo·한글·저장 7건
     │   ├── collaboration.spec.ts     # M2 탭별 이름·새로고침 유지·합류·실시간·동시 편집·목록·원격 표시·탭 종료·undo 범위 9건
-    │   └── ai.spec.ts                # M3 대상·스트리밍·적용·한 번 undo·중지·버리기·빈 결과·제외·실패·원래 값 바뀜·⌘K·위치 보기·새로고침 유지·다른 탭 상태 11건 (가짜 응답)
+    │   └── ai.spec.ts                # M3 대상·스트리밍·적용·한 번 undo·중지·버리기·빈 결과·제외·실패·원래 값 바뀜·⌘K·위치 보기·새로고침 유지·다른 탭 상태·모델 선택·닫힌 패널 13건 (가짜 응답)
     └── src/
         ├── app/
         │   ├── layout.tsx            # StyledRegistry로 감쌈
@@ -88,7 +90,7 @@ last_verified: 2026-10-02
             ├── RemoteCursors.tsx     # 다른 참여자 선택·포인터·이름표·입력 중, AI 생성·검토 중 범위(점선·이름표)
             ├── ParticipantMenu.tsx   # 아바타 묶음, 접속자 목록, 이름 바꾸기·지우기
             ├── NameDialog.tsx        # 탭별 이름 지정 (마지막 이름 미리 채움)
-            ├── AiPanel.tsx           # AI 패널: 대화·대상 전환·진행·미리보기(제안 수·위치 보기·적용/버리기)·실패 문구
+            ├── AiPanel.tsx           # AI 패널: 대화·대상 전환·모델 선택·진행·미리보기(제안 수·위치 보기·적용/버리기)·실패 문구, 열고 닫기 애니메이션
             ├── ProposalLayer.tsx     # 시트 위 AI 제안 (형광펜, 원래 값 취소선, 원래 값 바뀜)
             ├── Toolbar.tsx           # 실행 취소·다시 실행, 굵게·기울임·밑줄, AI 편집 버튼
             ├── FormulaBar.tsx        # 이름 상자 + 값 편집줄 + 활성 셀의 AI 제안

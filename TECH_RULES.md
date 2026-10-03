@@ -20,7 +20,7 @@ last_verified: 2026-10-02
 | 로컬 UI 상태 | Zustand 5.0.15 | `apps/web/package.json` |
 | 스타일 | styled-components 6.5.3 (SSR registry `StyledRegistry`, SWC `compiler.styledComponents`) | `apps/web/package.json`, `apps/web/next.config.ts` |
 | 테스트 | Vitest 5 — `@sheet/core` 대상 | `packages/sheet-core/package.json` |
-| LLM 연결 | OpenAI 직접 — AI SDK `ai` 7, `@ai-sdk/openai` 4 (Responses API), 모델 `gpt-5.4-mini` | `apps/web/package.json`, `apps/web/src/app/api/ai/route.ts` |
+| LLM 연결 | OpenAI 직접 — AI SDK `ai` 7, `@ai-sdk/openai` 4 (Responses API). 모델은 허용 목록(`gpt-5.4-nano`·`gpt-5.4-mini` 기본·`gpt-5.4`) | `apps/web/package.json`, `packages/sheet-core/src/ai/models.ts` |
 
 - 의존성은 그것을 처음 쓰는 코드와 같은 커밋에서 추가한다. "나중에 쓸" 의존성을 미리 넣지 않는다.
 - 위 표에 없는 의존성은 표준 API·기존 의존성으로 불가능할 때만 추가하고, 추가하면 이 표와 `DESIGN.md`에 사유를 적는다.
@@ -57,6 +57,7 @@ last_verified: 2026-10-02
 ## 5. AI 편집 규약
 
 - LLM 호출은 서버 라우트(`apps/web/src/app/api/`)에서만 한다. API 키는 서버 환경 변수로만 읽고 `NEXT_PUBLIC_` 접두를 붙이지 않는다.
+- 브라우저가 보낸 모델 이름은 그대로 쓰지 않는다. `resolveModel`로 허용 목록에 맞춘다.
 - 클라이언트 요청은 `AbortController`로 취소 가능해야 하고, 서버 라우트는 `request.signal`을 provider 호출까지 전달해 취소 시 생성을 멈춘다.
 - AI 결과는 `Y.Doc`에 바로 쓰지 않는다. 제안(원래 값 / 제안 값)은 내 탭의 초안(`sessionStorage`)으로 보관하고, 사용자가 셀 하나 또는 전부를 적용할 때 transaction 하나로 쓴다 — 요구사항 A3·A5. 다른 참여자에게는 생성·검토 중인 범위만 awareness로 알린다.
 - 모델 출력은 신뢰 경계 밖의 입력이다. 셀 주소·범위·형식을 검증한 뒤에만 제안으로 받아들인다. 대상 범위 밖 셀을 바꾸는 출력은 거부한다.

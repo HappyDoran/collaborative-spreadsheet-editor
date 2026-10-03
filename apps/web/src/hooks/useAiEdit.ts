@@ -76,7 +76,7 @@ export function useAiEdit(actions: SheetActions) {
       controller.current = ctrl;
       try {
         await streamAiEdit(
-          { instruction, scope, context, mock: state().mock },
+          { instruction, scope, context, mock: state().mock, model: state().model },
           {
             signal: ctrl.signal,
             onEvent: (event) => {

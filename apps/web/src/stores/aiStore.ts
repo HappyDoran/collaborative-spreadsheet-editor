@@ -1,4 +1,4 @@
-import type { AiErrorCode, AiScope, ProposedEdit } from "@sheet/core";
+import { DEFAULT_AI_MODEL, type AiErrorCode, type AiModelId, type AiScope, type ProposedEdit } from "@sheet/core";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
@@ -16,6 +16,7 @@ type AiState = {
   open: boolean;
   scopeMode: "auto" | "selection" | "sheet"; // auto: 여러 칸이면 선택 범위, 한 칸이면 시트 전체
   mock: boolean; // 가짜 응답 모드 (디버깅 버튼) — 저장하지 않는다
+  model: AiModelId;
   status: AiStatus;
   scope: AiScope; // 보낸 순간 고정된 대상
   edits: ProposedEdit[]; // 검토 중인 제안 — 한 번에 적용하거나 버린다
@@ -37,6 +38,7 @@ export const useAiStore = create<AiState>()(
       open: false,
       scopeMode: "auto",
       mock: false,
+      model: DEFAULT_AI_MODEL,
       ...IDLE_RUN,
       messages: [],
       lastInstruction: "",

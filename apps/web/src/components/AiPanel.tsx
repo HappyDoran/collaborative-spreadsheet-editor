@@ -1,6 +1,6 @@
 "use client";
 
-import { toA1, type AiErrorCode, type AiScope } from "@sheet/core";
+import { AI_MODELS, toA1, type AiErrorCode, type AiModelId, type AiScope } from "@sheet/core";
 import { useEffect, useRef, useState, type RefObject } from "react";
 import styled from "styled-components";
 import { useShallow } from "zustand/react/shallow";
@@ -22,11 +22,21 @@ const ERRORS: Record<AiErrorCode, { text: string; retry: boolean }> = {
 
 const scopeLabel = (scope: AiScope) => (scope ? `${toA1(scope.start)}:${toA1(scope.end)}` : "시트 전체");
 
-type Props = { ai: AiCommands; staleCount: number; gridInputRef: RefObject<HTMLInputElement | null> };
+type Props = { open: boolean; ai: AiCommands; staleCount: number; gridInputRef: RefObject<HTMLInputElement | null> };
 
-export function AiPanel({ ai, staleCount, gridInputRef }: Props) {
-  const { status, scope, edits, messages, mock, scopeMode } = useAiStore(
-    useShallow((s) => ({ status: s.status, scope: s.scope, edits: s.edits, messages: s.messages, mock: s.mock, scopeMode: s.scopeMode })),
+// 닫혀 있어도 마운트를 유지한다 — 닫는 애니메이션을 보이고, 입력 중이던 지시도 남긴다.
+// 닫힌 동안은 inert라 키보드·스크린리더가 들어가지 않는다.
+export function AiPanel({ open, ai, staleCount, gridInputRef }: Props) {
+  const { status, scope, edits, messages, mock, scopeMode, model } = useAiStore(
+    useShallow((s) => ({
+      status: s.status,
+      scope: s.scope,
+      edits: s.edits,
+      messages: s.messages,
+      mock: s.mock,
+      scopeMode: s.scopeMode,
+      model: s.model,
+    })),
   );
   useSelectionStore(useShallow((s) => [s.active, s.extent])); // 대기 중 대상 표시가 선택을 따라가게
   const [draft, setDraft] = useState("");
@@ -64,113 +74,128 @@ export function AiPanel({ ai, staleCount, gridInputRef }: Props) {
   const backToGrid = () => gridInputRef.current?.focus();
 
   return (
-    <Panel aria-label="AI 편집">
-      <Header>
-        <Title>AI 편집</Title>
-        <Close type="button" aria-label="AI 편집 닫기" onClick={() => useAiStore.setState({ open: false })}>
-          ✕
-        </Close>
-      </Header>
-      {mock && <MockBand>가짜 응답 모드예요. 실제 AI를 부르지 않아요.</MockBand>}
+    <Slot $open={open} inert={!open}>
+      <Panel aria-label="AI 편집">
+        <Header>
+          <Title>AI 편집</Title>
+          <Close type="button" aria-label="AI 편집 닫기" onClick={() => useAiStore.setState({ open: false })}>
+            ✕
+          </Close>
+        </Header>
+        {mock && <MockBand>가짜 응답 모드예요. 실제 AI를 부르지 않아요.</MockBand>}
 
-      <Messages ref={listRef} aria-live="polite">
-        {messages.length === 0 && (
-          <Empty>
-            범위를 선택하고 할 일을 적어 보세요. AI가 셀 값을 제안하면 시트에서 원래 값과 비교한 뒤 적용할 수 있어요.
-          </Empty>
+        <Messages ref={listRef} aria-live="polite">
+          {messages.length === 0 && (
+            <Empty>
+              범위를 선택하고 할 일을 적어 보세요. AI가 셀 값을 제안하면 시트에서 원래 값과 비교한 뒤 적용할 수 있어요.
+            </Empty>
+          )}
+          {messages.map((m) => (
+            <Message key={m.id} $role={m.role}>
+              {textOf(m)}
+              {m === lastError && status === "idle" && m.role === "error" && ERRORS[m.code].retry && (
+                <InlineButton type="button" onClick={ai.retry}>
+                  다시 시도
+                </InlineButton>
+              )}
+            </Message>
+          ))}
+        </Messages>
+
+        {running && (
+          <Status role="status">
+            <span>{status === "reading" ? "시트를 읽는 중…" : `셀을 채우는 중… ${edits.length}개`}</span>
+            <Button type="button" onClick={ai.stop}>
+              중지
+            </Button>
+          </Status>
         )}
-        {messages.map((m) => (
-          <Message key={m.id} $role={m.role}>
-            {textOf(m)}
-            {m === lastError && status === "idle" && m.role === "error" && ERRORS[m.code].retry && (
-              <InlineButton type="button" onClick={ai.retry}>
-                다시 시도
+
+        {status === "review" && (
+          <Review>
+            <Preview>미리보기예요. 아직 시트에 적용되지 않았어요.</Preview>
+            <Summary>
+              <span>제안 {edits.length}개</span>
+              <InlineButton type="button" onClick={showNext} title="누를 때마다 다음 제안 칸으로 스크롤해요">
+                위치 보기
               </InlineButton>
-            )}
-          </Message>
-        ))}
-      </Messages>
+            </Summary>
+            {staleCount > 0 && <Warn>{staleCount}개 셀의 원래 값이 검토하는 동안 바뀌었어요.</Warn>}
+            <Actions>
+              <Button type="button" $primary onClick={() => (ai.apply(), backToGrid())}>
+                {staleCount > 0 ? "그래도 적용" : "적용"}
+              </Button>
+              <Button type="button" onClick={() => (ai.discard(), backToGrid())}>
+                버리기
+              </Button>
+            </Actions>
+          </Review>
+        )}
 
-      {running && (
-        <Status role="status">
-          <span>{status === "reading" ? "시트를 읽는 중…" : `셀을 채우는 중… ${edits.length}개`}</span>
-          <Button type="button" onClick={ai.stop}>
-            중지
-          </Button>
-        </Status>
-      )}
-
-      {status === "review" && (
-        <Review>
-          <Preview>미리보기예요. 아직 시트에 적용되지 않았어요.</Preview>
-          <Summary>
-            <span>제안 {edits.length}개</span>
-            <InlineButton type="button" onClick={showNext} title="누를 때마다 다음 제안 칸으로 스크롤해요">
-              위치 보기
-            </InlineButton>
-          </Summary>
-          {staleCount > 0 && <Warn>{staleCount}개 셀의 원래 값이 검토하는 동안 바뀌었어요.</Warn>}
-          <Actions>
-            <Button type="button" $primary onClick={() => (ai.apply(), backToGrid())}>
-              {staleCount > 0 ? "그래도 적용" : "적용"}
-            </Button>
-            <Button type="button" onClick={() => (ai.discard(), backToGrid())}>
-              버리기
-            </Button>
-          </Actions>
-        </Review>
-      )}
-
-      <Composer
-        onSubmit={(e) => {
-          e.preventDefault();
-          send();
-        }}
-      >
-        <ScopeRow>
-          <span>
-            대상: <strong>{scopeLabel(target)}</strong>
-          </span>
-          <Segmented role="group" aria-label="AI 대상">
-            {(["selection", "sheet"] as const).map((mode) => (
-              <Segment
-                key={mode}
-                type="button"
-                disabled={status !== "idle"}
-                aria-pressed={scopeMode === mode || (scopeMode === "auto" && (mode === "sheet") === autoIsSheet)}
-                onClick={() => useAiStore.setState({ scopeMode: mode })}
-              >
-                {mode === "selection" ? "선택 범위만" : "시트 전체"}
-              </Segment>
-            ))}
-          </Segmented>
-        </ScopeRow>
-        <Input
-          id="ai-input"
-          aria-label="AI에게 할 일"
-          rows={3}
-          placeholder="예: 금액 열에 부가세 10% 더하기"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.nativeEvent.isComposing || e.keyCode === 229) return; // 한글 조합 중 Enter는 IME 몫
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              send();
-            } else if (e.key === "Escape") {
-              e.preventDefault();
-              gridInputRef.current?.focus();
-            }
+        <Composer
+          onSubmit={(e) => {
+            e.preventDefault();
+            send();
           }}
-        />
-        <ComposerFoot>
+        >
+          <ScopeRow>
+            <span>
+              대상: <strong>{scopeLabel(target)}</strong>
+            </span>
+            <Segmented role="group" aria-label="AI 대상">
+              {(["selection", "sheet"] as const).map((mode) => (
+                <Segment
+                  key={mode}
+                  type="button"
+                  disabled={status !== "idle"}
+                  aria-pressed={scopeMode === mode || (scopeMode === "auto" && (mode === "sheet") === autoIsSheet)}
+                  onClick={() => useAiStore.setState({ scopeMode: mode })}
+                >
+                  {mode === "selection" ? "선택 범위만" : "시트 전체"}
+                </Segment>
+              ))}
+            </Segmented>
+          </ScopeRow>
+          <Input
+            id="ai-input"
+            aria-label="AI에게 할 일"
+            rows={3}
+            placeholder="예: 금액 열에 부가세 10% 더하기"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.nativeEvent.isComposing || e.keyCode === 229) return; // 한글 조합 중 Enter는 IME 몫
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                send();
+              } else if (e.key === "Escape") {
+                e.preventDefault();
+                gridInputRef.current?.focus();
+              }
+            }}
+          />
+          <ComposerFoot>
+            <ModelSelect
+              aria-label="AI 모델"
+              title={AI_MODELS.find((m) => m.id === model)?.hint}
+              value={model}
+              disabled={status !== "idle"}
+              onChange={(e) => useAiStore.setState({ model: e.target.value as AiModelId })}
+            >
+              {AI_MODELS.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.label} ({m.id})
+                </option>
+              ))}
+            </ModelSelect>
+            <Button type="submit" $primary disabled={!draft.trim() || status !== "idle"}>
+              보내기
+            </Button>
+          </ComposerFoot>
           <Hint>Enter로 보내고 Shift+Enter로 줄을 바꿔요</Hint>
-          <Button type="submit" $primary disabled={!draft.trim() || status !== "idle"}>
-            보내기
-          </Button>
-        </ComposerFoot>
-      </Composer>
-    </Panel>
+        </Composer>
+      </Panel>
+    </Slot>
   );
 }
 
@@ -178,22 +203,49 @@ function textOf(m: AiMessage) {
   return m.role === "error" ? ERRORS[m.code].text : m.text;
 }
 
-const Panel = styled.aside`
+const PANEL_W = 340;
+const EASE = "cubic-bezier(0.2, 0.8, 0.2, 1)";
+
+// 넓은 화면: 슬롯 너비가 0 ↔ 340으로 바뀌며 시트가 비켜서고, 패널은 오른쪽에 붙어 미끄러져 들어온다.
+// 좁은 화면: 시트 위로 덮이며 오른쪽에서 밀려 들어온다. 닫힌 뒤에는 visibility로 숨겨 접근 트리에서도 뺀다.
+const Slot = styled.div<{ $open: boolean }>`
   display: flex;
-  flex-direction: column;
-  width: 340px;
+  justify-content: flex-end;
   flex: none;
+  width: ${(p) => (p.$open ? PANEL_W : 0)}px;
   min-height: 0;
-  border-left: 1px solid var(--rule);
-  background: var(--paper);
+  overflow: hidden;
+  visibility: ${(p) => (p.$open ? "visible" : "hidden")};
+  transition:
+    width 220ms ${EASE},
+    visibility 0s linear ${(p) => (p.$open ? "0s" : "220ms")};
 
   @media (max-width: 900px) {
     position: absolute;
     inset: 0 0 0 auto;
     z-index: 5;
-    width: min(340px, 100%);
-    box-shadow: -8px 0 24px rgb(30 35 40 / 0.14);
+    width: min(${PANEL_W}px, 100%);
+    transform: translateX(${(p) => (p.$open ? "0" : "100%")});
+    box-shadow: ${(p) => (p.$open ? "-8px 0 24px rgb(30 35 40 / 0.14)" : "none")};
+    transition:
+      transform 220ms ${EASE},
+      visibility 0s linear ${(p) => (p.$open ? "0s" : "220ms")};
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+`;
+
+const Panel = styled.aside`
+  display: flex;
+  flex-direction: column;
+  width: ${PANEL_W}px;
+  max-width: 100%;
+  flex: none;
+  min-height: 0;
+  border-left: 1px solid var(--rule);
+  background: var(--paper);
 `;
 
 const Header = styled.div`
@@ -407,6 +459,26 @@ const ComposerFoot = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
+`;
+
+const ModelSelect = styled.select`
+  max-width: 200px;
+  height: 30px;
+  padding: 0 6px;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+  &:disabled {
+    opacity: 0.6;
+  }
 `;
 
 const Hint = styled.span`

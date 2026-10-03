@@ -183,3 +183,29 @@ test("M3-11 다른 탭에는 제안 값 대신 'AI 생성 중·검토 중' 범�
   await a.getByRole("complementary", { name: "AI 편집" }).getByRole("button", { name: "버리기", exact: true }).click();
   await expect(b.getByText(/서연 · AI/)).toHaveCount(0);
 });
+
+test("M3-12 모델 선택: 고른 모델로 요청하고, 생성 중에는 바꿀 수 없다", async ({ context }) => {
+  const page = await openSheet(context);
+  await seed(page);
+  await widen(page);
+  await page.keyboard.press(`${MOD}+k`);
+  const select = panel(page).getByLabel("AI 모델");
+  await expect(select).toHaveValue("gpt-5.4-mini"); // 기본
+  await select.selectOption("gpt-5.4-nano");
+  await panel(page).getByLabel("AI에게 할 일").fill("확인 표시 #slow");
+  await panel(page).getByLabel("AI에게 할 일").press("Enter");
+  await expect(panel(page)).toContainText("가짜 응답이에요(gpt-5.4-nano)"); // 서버까지 전달됐다
+  await expect(select).toBeDisabled();
+  await panel(page).getByRole("button", { name: "중지" }).click();
+  await expect(select).toBeEnabled();
+});
+
+test("M3-13 패널은 닫혀도 입력 중이던 지시를 남기고, 닫힌 동안 키보드가 들어가지 않는다", async ({ context }) => {
+  const page = await openSheet(context);
+  await page.getByRole("button", { name: "AI 편집" }).click();
+  await panel(page).getByLabel("AI에게 할 일").fill("나중에 보낼 지시");
+  await panel(page).getByRole("button", { name: "AI 편집 닫기" }).click();
+  await expect(panel(page)).toHaveCount(0); // 닫힘 애니메이션 뒤 접근 트리에서 빠진다
+  await page.keyboard.press(`${MOD}+k`);
+  await expect(page.getByLabel("AI에게 할 일")).toHaveValue("나중에 보낼 지시");
+});

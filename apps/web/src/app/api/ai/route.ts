@@ -1,13 +1,12 @@
 import { openai } from "@ai-sdk/openai";
 import { APICallError, Output, jsonSchema, streamText } from "ai";
-import type { AiErrorCode, AiItem, AiRequestBody, AiStreamEvent } from "@sheet/core";
+import { resolveModel, type AiErrorCode, type AiItem, type AiRequestBody, type AiStreamEvent } from "@sheet/core";
 import { MockFailure, mockItems } from "./mock";
 import { SYSTEM_PROMPT, buildPrompt } from "./prompt";
 
 // AI 편집 서버 라우트. 브라우저에는 NDJSON(한 줄에 이벤트 하나)으로 흘려보낸다 (DESIGN.md 13절).
 // 키는 서버 환경 변수로만 읽는다 (TECH_RULES.md 5절).
 
-const MODEL = "gpt-5.4-mini";
 const MAX_INSTRUCTION_CHARS = 1_000;
 const MAX_CONTEXT_CHARS = 60_000; // 셀 600개 상한(sheetContext)과 별개로 문자 수도 막는다
 const MAX_OUTPUT_TOKENS = 6_000;
@@ -62,7 +61,7 @@ async function* modelItems(body: AiRequestBody, signal: AbortSignal): AsyncGener
   if (!process.env.OPENAI_API_KEY) throw new Failure("config");
   let streamError: unknown = null;
   const result = streamText({
-    model: openai(MODEL),
+    model: openai(resolveModel(body.model)), // 허용 목록 밖이면 기본 모델
     system: SYSTEM_PROMPT,
     prompt: buildPrompt(body),
     output: Output.array({ element: ITEM_SCHEMA }),

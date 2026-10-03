@@ -5,3 +5,4 @@ export * from "./participants";
 export * from "./ai/types";
 export * from "./ai/proposal";
 export * from "./ai/context";
+export * from "./ai/models";
