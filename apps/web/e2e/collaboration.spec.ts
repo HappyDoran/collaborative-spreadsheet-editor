@@ -166,3 +166,27 @@ test("M2-C9 가려진 동안 놓친 변경·위치를 탭이 다시 보일 때 �
   await myAvatar(b).click();
   await expect(b.locator("#participant-panel")).toContainText("서연C6");
 });
+
+test("M2-C11 가려져 타이머가 늦춰진 탭도 다른 탭의 목록에서 사라지지 않는다", async ({ context }) => {
+  test.setTimeout(90_000);
+  // 가려진 탭을 흉내 낸다: 주소에 ?hidden-throttle가 있는 탭은 모든 setInterval이 20배 느리다
+  // (awareness 자체 갱신 확인 3초 → 60초 — Chrome이 5분 넘게 가려진 탭에 거는 1분 지연과 같다)
+  await context.addInitScript(() => {
+    if (!location.search.includes("hidden-throttle")) return;
+    const original = window.setInterval;
+    window.setInterval = ((handler: TimerHandler, ms?: number, ...args: unknown[]) =>
+      original(handler, (ms ?? 0) * 20, ...args)) as typeof window.setInterval;
+  });
+  const visible = await openSheet(context, "서연");
+  const hidden = await context.newPage();
+  await hidden.goto("/?hidden-throttle");
+  await hidden.locator("dialog[open]").getByLabel("이름").fill("김가림");
+  await hidden.locator("dialog[open]").getByRole("button", { name: "시작하기" }).click();
+  await expect(myAvatar(visible)).toHaveAttribute("aria-label", /접속 중 2명/);
+
+  // 만료(30초)를 넘겨 지켜본다 — 고치기 전에는 35초 무렵 1명이 된다
+  for (let t = 0; t < 45; t += 5) {
+    await visible.waitForTimeout(5_000);
+    await expect(myAvatar(visible)).toHaveAttribute("aria-label", /접속 중 2명/);
+  }
+});
