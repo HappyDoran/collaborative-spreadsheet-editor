@@ -88,6 +88,7 @@ last_verified: 2026-10-03
         │   ├── useSheet.ts           # 세션 수명, UndoManager, 문서 변경 구독(version), 시트 연산 묶음
         │   ├── useSheetCommands.ts   # 엑셀 키맵·확정·취소·복사/잘라내기/붙여넣기(키보드·메뉴), 내용 지우기, 클립보드 HTML 표 읽기
         │   ├── shortcut.ts           # 단축키 표기(⌘ / Ctrl) — 툴바·메뉴·안내 문구가 같이 쓴다
+        │   ├── clipboardHtml.ts      # 클립보드 → 붙여넣을 셀 격자: 값은 탭 구분 텍스트, 서식은 HTML(엑셀 클래스·시트 style·b/i/u, colspan)
         │   ├── useIdentity.ts        # 저장된 이름·색을 마운트 후 읽기
         │   ├── usePresence.ts        # 내 상태 알리기(이름·색·선택·편집 중·AI 생성/검토 범위), 색 고르기, 참여자 목록
         │   └── useAiEdit.ts          # 보내기·셀 판정·적용·버리기·중지, 대상 범위 결정, 이탈 중 끊긴 요청 무시

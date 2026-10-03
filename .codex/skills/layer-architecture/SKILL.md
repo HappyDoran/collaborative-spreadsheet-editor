@@ -19,7 +19,7 @@ app  →  components  →  hooks  →  stores · collab · ai  →  @sheet/core
 | `apps/web/src/collab/` | `Y.Doc` ↔ BroadcastChannel·IndexedDB·awareness 연결, 참여자 식별 | `@sheet/core`, `yjs`, Yjs provider | `react`, `zustand`, `styled-components`, `components/`, `hooks/` |
 | `apps/web/src/ai/` | AI 요청 수명주기(시작·스트림 수신·취소·실패)의 클라이언트 측 | `@sheet/core` | `react`, `yjs`, `components/` |
 | `apps/web/src/stores/` | Zustand 로컬 UI 상태 | `zustand`, `@sheet/core` | `yjs`, `react-dom`, `styled-components`, `components/` |
-| `apps/web/src/hooks/` | React ↔ `Y.Doc`·awareness·store 바인딩 (구독, 파생값) | 위 전부, `react`, `yjs` | `components/`, `styled-components` |
+| `apps/web/src/hooks/` | React ↔ `Y.Doc`·awareness·store 바인딩 (구독, 파생값). 바인딩이 쓰는 브라우저 도우미(`shortcut.ts` 단축키 표기, `clipboardHtml.ts` 클립보드 HTML 해석)도 둔다 — 브라우저 API(navigator·DOMParser)가 필요해 core에 갈 수 없고 hooks와 components가 함께 쓴다 | 위 전부, `react`, `yjs` | `components/`, `styled-components` |
 | `apps/web/src/components/` | 표시와 입력. 쓰기는 hooks가 노출한 core 연산 호출로만 | `react`, `styled-components`, `hooks/`, `stores/`, `@sheet/core` | `yjs`, `collab/` 직접 |
 | `apps/web/src/app/` | 라우트·레이아웃, `api/` 서버 라우트 | 페이지: `components/`. `api/`: `@sheet/core`, LLM SDK | `api/`에서 `components/`·`stores/`·`collab/`·`hooks/` |
 
