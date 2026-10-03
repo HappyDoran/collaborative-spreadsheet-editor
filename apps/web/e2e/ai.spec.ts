@@ -42,10 +42,18 @@ test("M3-2 셀 단위 스트리밍 → 미리보기 → 적용 → 실행 취소
   const page = await openSheet(context);
   await seed(page);
   await widen(page);
+  // 진행 문구는 서버가 바쁘면 스트림이 몰려 와 아주 잠깐만 보인다 — 한 번이라도 나타났는지 기록해 두고 끝난 뒤 확인한다
+  await page.evaluate(() => {
+    const w = window as unknown as { sawProgress: boolean };
+    w.sawProgress = false;
+    new MutationObserver(() => {
+      if (/셀을 채우는 중… \d+개/.test(document.body.innerText)) w.sawProgress = true;
+    }).observe(document.body, { subtree: true, childList: true, characterData: true });
+  });
   await ask(page, "확인 표시 #slow");
   await expect(proposal(page, 1, 0)).toContainText("1000 ✓", { timeout: 10_000 });
-  await expect(panel(page).getByText(/셀을 채우는 중… \d+개/)).toBeVisible();
-  await expect(panel(page).getByText("미리보기예요. 아직 시트에 적용되지 않았어요.")).toBeVisible();
+  await expect(panel(page).getByText("미리보기예요. 아직 시트에 적용되지 않았어요.")).toBeVisible({ timeout: 15_000 });
+  expect(await page.evaluate(() => (window as unknown as { sawProgress: boolean }).sawProgress)).toBe(true);
   await expect(cell(page, 1, 0)).toHaveText("1000"); // 미리보기 동안 시트는 그대로
   await expect(page.getByText("AI 제안: 1000 ✓")).toBeVisible(); // 값 편집줄
 
