@@ -1,7 +1,7 @@
 "use client";
 
 import { isSingleCell, normalizeRange } from "@sheet/core";
-import styled from "styled-components";
+import styled, { keyframes } from "styled-components";
 import type { Participant } from "@/hooks/usePresence";
 import { rectOf, single } from "./gridGeometry";
 
@@ -31,7 +31,14 @@ export function RemoteCursors({ others }: { others: Participant[] }) {
       <Layer key={clientId} style={style}>
         {!isSingleCell(range) && <Range style={rectOf(range)} />}
         <Pointer style={cell} $editing={cursor.editing} />
-        <Tag style={{ top: cell.top, left: cell.left + cell.width }} $below={cursor.active.row === 0}>
+        {/* 이름표는 움직인 직후에만 보이고 접힌다 — 옆 칸 값을 계속 가리지 않게. 입력 중에는 남긴다.
+            key로 위치·상태가 바뀔 때마다 다시 그려 사라지는 시간을 새로 센다. */}
+        <Tag
+          key={`${cursor.active.row}:${cursor.active.col}:${cursor.editing}`}
+          style={{ top: cell.top, left: cell.left + cell.width }}
+          $below={cursor.active.row === 0}
+          $fade={!cursor.editing}
+        >
           {cursor.editing ? `${user.name} · 입력 중` : user.name}
         </Tag>
       </Layer>
@@ -90,9 +97,20 @@ const AiTag = styled.div<{ $below: boolean }>`
   white-space: nowrap;
 `;
 
-// 셀 오른쪽 위 모서리에 붙는 이름표. 첫 행이면 머리글에 가리지 않게 아래로 내린다.
-const Tag = styled.div<{ $below: boolean }>`
+const fadeOut = keyframes`
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+`;
+
+// 셀 오른쪽 위 모서리에 붙는 이름표. 첫 행이면 머리글에 가리지 않게 아래로 내린다. 긴 이름은 말줄임.
+const Tag = styled.div<{ $below: boolean; $fade: boolean }>`
   position: absolute;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  animation: ${(p) => (p.$fade ? fadeOut : "none")} 0.3s ease 3s forwards;
   z-index: 2;
   pointer-events: none;
   transform: ${(p) => (p.$below ? "translate(-100%, 24px)" : "translate(-100%, -100%)")};
