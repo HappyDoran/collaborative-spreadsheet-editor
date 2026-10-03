@@ -39,6 +39,17 @@ export function normalizeName(input: string): string | null {
   return name || null;
 }
 
+// 새 탭의 이름 입력 화면에 미리 채울 이름. 마지막에 쓴 이름이 지금 접속 중이면 뒤에 번호를 붙여 제안한다
+// (같은 이름은 허용하지만, Enter 한 번으로 같은 이름이 둘 생기지 않게). 사용자가 고쳐 쓰면 그대로 쓴다.
+export function suggestName(last: string, taken: Iterable<string>): string {
+  const used = new Set(taken);
+  if (!last || !used.has(last)) return last;
+  for (let n = 2; ; n++) {
+    const name = `${Array.from(last).slice(0, NAME_MAX_LENGTH - String(n).length - 1).join("")} ${n}`;
+    if (!used.has(name)) return name;
+  }
+}
+
 // 아바타에 넣을 첫 글자. 한글·이모지도 한 글자로 자른다.
 export function initialOf(name: string): string {
   return (Array.from(name.trim())[0] ?? "?").toUpperCase();

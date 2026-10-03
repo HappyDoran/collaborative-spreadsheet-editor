@@ -35,9 +35,8 @@ export function SheetApp() {
           <Loading>시트를 불러오는 중…</Loading>
         </>
       ) : (
-        <Editor {...sheet} name={name} color={color} />
+        <Editor {...sheet} name={name} color={color} askName={hydrated && !name} />
       )}
-      {hydrated && !name && <NameDialog defaultName={readLastName()} onSubmit={useNameStore.getState().setName} />}
     </Shell>
   );
 }
@@ -50,9 +49,10 @@ type EditorProps = {
   canRedo: boolean;
   name: string | null;
   color: string | null;
+  askName: boolean; // 이 탭의 이름을 아직 정하지 않음
 };
 
-function Editor({ actions, awareness, version, canUndo, canRedo, name, color }: EditorProps) {
+function Editor({ actions, awareness, version, canUndo, canRedo, name, color, askName }: EditorProps) {
   usePresence(awareness, name, color);
   const participants = useParticipants(awareness);
   const others = participants.filter((p) => !p.isSelf);
@@ -138,6 +138,13 @@ function Editor({ actions, awareness, version, canUndo, canRedo, name, color }: 
         />
       </Workspace>
       <StatusBar actions={actions} />
+      {askName && (
+        <NameDialog
+          lastName={readLastName()}
+          taken={others.map((p) => p.user.name)}
+          onSubmit={useNameStore.getState().setName}
+        />
+      )}
     </>
   );
 }

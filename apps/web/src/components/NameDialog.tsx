@@ -1,14 +1,24 @@
 "use client";
 
-import { NAME_MAX_LENGTH, normalizeName } from "@sheet/core";
+import { NAME_MAX_LENGTH, normalizeName, suggestName } from "@sheet/core";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 
 // 탭이 처음 시트에 들어올 때 이름을 정한다 (탭 = 참여자). 마지막에 쓴 이름을 미리 채워 Enter 한 번이면 된다.
-// 이름 없이 시트를 쓸 수 없으므로 Esc로 닫히지 않는다.
-export function NameDialog({ defaultName, onSubmit }: { defaultName: string; onSubmit: (name: string) => void }) {
+// 그 이름이 지금 접속 중이면 번호를 붙여 제안한다 — 접속자 목록은 화면이 뜬 뒤에 도착할 수 있어, 사용자가
+// 고쳐 쓰기 전까지는 제안을 따라간다. 이름 없이 시트를 쓸 수 없으므로 Esc로 닫히지 않는다.
+export function NameDialog({
+  lastName,
+  taken,
+  onSubmit,
+}: {
+  lastName: string;
+  taken: string[]; // 지금 접속 중인 다른 참여자 이름
+  onSubmit: (name: string) => void;
+}) {
   const ref = useRef<HTMLDialogElement>(null);
-  const [value, setValue] = useState(defaultName);
+  const [typed, setTyped] = useState<string | null>(null); // null: 아직 고쳐 쓰지 않음
+  const value = typed ?? suggestName(lastName, taken);
   const [error, setError] = useState(false);
 
   useEffect(() => {
@@ -40,7 +50,7 @@ export function NameDialog({ defaultName, onSubmit }: { defaultName: string; onS
           placeholder="예: Anonymous"
           value={value}
           onChange={(e) => {
-            setValue(e.target.value);
+            setTyped(e.target.value);
             setError(false);
           }}
         />
