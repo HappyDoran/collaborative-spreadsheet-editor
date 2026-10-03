@@ -10,7 +10,7 @@ import { selectedRange, useSelectionStore } from "@/stores/selectionStore";
 type Props = {
   commands: SheetCommands;
   activeValue: string;
-  proposal?: string; // 활성 셀에 대한 AI 제안 값 (검토 중)
+  proposal?: { before: string; after: string }; // 활성 셀에 대한 AI 제안 (검토 중)
   gridInputRef: RefObject<HTMLInputElement | null>;
 };
 
@@ -44,7 +44,11 @@ export function FormulaBar({ commands, activeValue, proposal, gridInputRef }: Pr
           }
         }}
       />
-      {proposal !== undefined && <Proposal title="적용하면 이 값으로 바뀌어요">AI 제안: {proposal || "(빈 값)"}</Proposal>}
+      {proposal && (
+        <Proposal title="적용하면 제안 값으로 바뀌어요">
+          원래 {proposal.before || "(빈 칸)"} → 제안 {proposal.after || "(빈 값)"}
+        </Proposal>
+      )}
     </Bar>
   );
 }

@@ -26,7 +26,7 @@ test("M4-X1 검토 중 다른 탭이 대상 칸을 고치면 그 칸은 건너�
   await expect(panel(a).getByRole("button", { name: "적용", exact: true })).toBeVisible();
 
   await typeInto(b, 2, 0, "준호가 고침"); // 탭 B가 A3를 고침
-  await expect(proposal(a, 2, 0)).toContainText("!");
+  await expect(proposal(a, 2, 0)).toContainText("지금 준호가 고침 · 건너뜀");
   await panel(a).getByRole("button", { name: "바뀐 1칸 빼고 적용" }).click();
   for (const p of [a, b]) {
     await expect(cell(p, 1, 0)).toHaveText("100 ✓");

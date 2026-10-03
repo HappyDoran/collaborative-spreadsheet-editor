@@ -65,7 +65,7 @@ function Editor({ actions, awareness, version, canUndo, canRedo, name, color }: 
   const aiOpen = useAiStore((s) => s.open);
   const proposals = useAiStore((s) => s.edits);
   const read = (addr: Parameters<typeof actions.read>[0]) => actions.read(addr)?.value ?? "";
-  const stale = new Set(staleEdits(proposals, read).map((e) => cellKey(e.addr)));
+  const stale = new Map(staleEdits(proposals, read).map((e) => [cellKey(e.addr), read(e.addr)]));
   const activeProposal = proposals.find((p) => p.addr.row === active.row && p.addr.col === active.col);
   const debug = useDebugMode();
 
@@ -115,7 +115,7 @@ function Editor({ actions, awareness, version, canUndo, canRedo, name, color }: 
       <FormulaBar
         commands={commands}
         activeValue={cell?.value ?? ""}
-        proposal={activeProposal?.after}
+        proposal={activeProposal}
         gridInputRef={inputRef}
       />
       <Workspace>

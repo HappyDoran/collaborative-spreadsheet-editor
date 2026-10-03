@@ -22,7 +22,7 @@ type Props = {
   version: number; // 문서가 바뀔 때마다 증가 — 셀 목록을 다시 만드는 기준
   others: Participant[]; // 다른 참여자 — 선택·편집 중 셀 표시
   proposals: ProposedEdit[]; // 검토 중인 AI 제안
-  stale: Set<string>; // 검토 중 원래 값이 바뀐 제안의 셀 키
+  stale: Map<string, string>; // 요청 뒤 원래 값이 바뀐 제안의 셀 키 → 지금 값
   onOpenAi: () => void; // 우클릭 메뉴의 "AI로 편집…"
   commands: SheetCommands;
   inputRef: RefObject<HTMLInputElement | null>;
