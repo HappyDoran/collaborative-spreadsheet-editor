@@ -1,6 +1,6 @@
 "use client";
 
-import { SHEET_COLS, SHEET_ROWS, colToLabel, type CellAddress } from "@sheet/core";
+import { SHEET_COLS, SHEET_ROWS, colToLabel, type CellAddress, type ProposedEdit } from "@sheet/core";
 import { memo, useEffect, useMemo, useRef, type MouseEvent, type RefObject } from "react";
 import styled from "styled-components";
 import { useShallow } from "zustand/react/shallow";
@@ -9,6 +9,7 @@ import type { SheetActions } from "@/hooks/useSheet";
 import type { Participant } from "@/hooks/usePresence";
 import { selectedRange, useSelectionStore } from "@/stores/selectionStore";
 import { COL_W, HEADER_W, ROW_H, rectOf, single } from "./gridGeometry";
+import { ProposalLayer } from "./ProposalLayer";
 import { RemoteCursors } from "./RemoteCursors";
 
 const NUMERIC = /^[-+]?(\d{1,3}(,\d{3})*|\d+)?(\.\d+)?%?$/;
@@ -17,17 +18,21 @@ type Props = {
   actions: SheetActions;
   version: number; // 문서가 바뀔 때마다 증가 — 셀 목록을 다시 만드는 기준
   others: Participant[]; // 다른 참여자 — 선택·편집 중 셀 표시
+  proposals: ProposedEdit[]; // 검토 중인 AI 제안
+  stale: Set<string>; // 검토 중 원래 값이 바뀐 제안의 셀 키
   commands: SheetCommands;
   inputRef: RefObject<HTMLInputElement | null>;
 };
 
-export function Grid({ actions, version, others, commands, inputRef }: Props) {
+export function Grid({ actions, version, others, proposals, stale, commands, inputRef }: Props) {
   const { active, extent, copied } = useSelectionStore(
     useShallow((s) => ({ active: s.active, extent: s.extent, copied: s.copied })),
   );
   const { select, selectRange } = useSelectionStore.getState();
   const range = selectedRange({ active, extent });
   const dragging = useRef(false);
+  const proposedRows = new Set(proposals.map((p) => p.addr.row));
+  const proposedCols = new Set(proposals.map((p) => p.addr.col));
 
   useEffect(() => {
     const stop = () => (dragging.current = false);
@@ -103,7 +108,12 @@ export function Grid({ actions, version, others, commands, inputRef }: Props) {
           }}
         />
         {Array.from({ length: SHEET_COLS }, (_, col) => (
-          <ColHeader key={col} data-col={col} $selected={col >= range.start.col && col <= range.end.col}>
+          <ColHeader
+            key={col}
+            data-col={col}
+            $selected={col >= range.start.col && col <= range.end.col}
+            $proposed={proposedCols.has(col)}
+          >
             {colToLabel(col)}
           </ColHeader>
         ))}
@@ -112,6 +122,7 @@ export function Grid({ actions, version, others, commands, inputRef }: Props) {
             key={row}
             data-row={row}
             $selected={row >= range.start.row && row <= range.end.row}
+            $proposed={proposedRows.has(row)}
             style={{ gridRow: row + 2 }}
           >
             {row + 1}
@@ -119,6 +130,7 @@ export function Grid({ actions, version, others, commands, inputRef }: Props) {
         ))}
         {cells}
 
+        <ProposalLayer edits={proposals} stale={stale} />
         <RemoteCursors others={others} />
         <RangeBox style={rectOf(range)} $multi={range.start.row !== range.end.row || range.start.col !== range.end.col} />
         {copied && <CopyBox style={rectOf(copied)} />}
@@ -134,7 +146,7 @@ function ActiveInput({
   commands,
   inputRef,
   active,
-}: Omit<Props, "version" | "others"> & { active: CellAddress }) {
+}: Pick<Props, "actions" | "commands" | "inputRef"> & { active: CellAddress }) {
   const { mode, draft } = useSelectionStore(useShallow((s) => ({ mode: s.mode, draft: s.draft })));
   const cell = actions.read(active);
   return (
@@ -182,6 +194,7 @@ type FormatProps = { $bold: boolean; $italic: boolean; $underline: boolean };
 
 const Scroller = styled.div`
   flex: 1;
+  min-width: 0;
   min-height: 0;
   overflow: auto;
   background: var(--paper);
@@ -220,19 +233,22 @@ const Corner = styled.div`
   grid-column: 1;
 `;
 
-const ColHeader = styled.div<{ $selected: boolean }>`
+// 머리글 표시: 선택은 내 색 막대, AI 제안이 있는 행·열은 형광펜 막대
+const ColHeader = styled.div<{ $selected: boolean; $proposed: boolean }>`
   ${header}
   top: 0;
   z-index: 3;
   grid-row: 1;
+  ${(p) => p.$proposed && "box-shadow: inset 0 -3px var(--marker-edge);"}
   ${(p) => p.$selected && "background: var(--header-selected); color: var(--ink); box-shadow: inset 0 -2px var(--accent);"}
 `;
 
-const RowHeader = styled.div<{ $selected: boolean }>`
+const RowHeader = styled.div<{ $selected: boolean; $proposed: boolean }>`
   ${header}
   left: 0;
   z-index: 3;
   grid-column: 1;
+  ${(p) => p.$proposed && "box-shadow: inset -3px 0 var(--marker-edge);"}
   ${(p) => p.$selected && "background: var(--header-selected); color: var(--ink); box-shadow: inset -2px 0 var(--accent);"}
 `;
 
@@ -284,6 +300,10 @@ const CellInput = styled.input<FormatProps & { $editing: boolean }>`
   color: ${(p) => (p.$editing ? "var(--ink)" : "transparent")};
   caret-color: ${(p) => (p.$editing ? "var(--accent)" : "transparent")};
   background: ${(p) => (p.$editing ? "var(--paper)" : "transparent")};
+  /* 포커스가 AI 패널 등 다른 곳에 있으면 셀 포인터를 흐리게 — 지금 타이핑이 어디로 가는지 보이게 */
+  &:not(:focus) {
+    border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  }
   /* 준비 상태에서는 클릭이 아래 셀로 지나가야 선택·더블클릭 편집이 동작한다 */
   pointer-events: ${(p) => (p.$editing ? "auto" : "none")};
   box-shadow: ${(p) => (p.$editing ? "0 2px 8px rgb(30 35 40 / 0.18)" : "none")};

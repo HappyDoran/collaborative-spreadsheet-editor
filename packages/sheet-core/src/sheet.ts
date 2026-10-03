@@ -109,6 +109,12 @@ export function writeGrid(doc: Y.Doc, target: CellRange, grid: CellData[][], ori
   return written;
 }
 
+// 여러 셀의 값을 한 번에 쓴다 (AI 제안 적용). transaction 하나 = 실행 취소 한 단계 (A5). 서식은 건드리지 않는다.
+export function setValues(doc: Y.Doc, entries: { addr: CellAddress; value: string }[], origin: unknown): void {
+  const cells = getCells(doc);
+  doc.transact(() => entries.forEach(({ addr, value }) => patchCell(cells, addr, { value })), origin);
+}
+
 // 내 transaction(origin)만 추적한다 — 원격·영속 계층 update는 되돌리지 않는다 (C7).
 // captureTimeout 0: 연속 입력을 한 단계로 합치지 않는다. 사용자 동작 하나 = undo 한 단계.
 export function createUndoManager(doc: Y.Doc, origin: unknown): Y.UndoManager {

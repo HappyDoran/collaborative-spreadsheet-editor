@@ -6,6 +6,9 @@
   --ink: #1e2328;
   --ink-muted: #6b7177;
   --ink-faint: #b4b8bc;
+  --marker: #fff1a6; /* AI 제안 형광펜 — 참여자 색에 없는 표시 */
+  --marker-edge: #e6c22e;
+  --danger: #b42318;
   --accent: #2735c4;
 }
 

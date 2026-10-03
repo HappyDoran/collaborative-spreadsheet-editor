@@ -20,7 +20,7 @@ last_verified: 2026-10-02
 | 로컬 UI 상태 | Zustand 5.0.15 | `apps/web/package.json` |
 | 스타일 | styled-components 6.5.3 (SSR registry `StyledRegistry`, SWC `compiler.styledComponents`) | `apps/web/package.json`, `apps/web/next.config.ts` |
 | 테스트 | Vitest 5 — `@sheet/core` 대상 | `packages/sheet-core/package.json` |
-| LLM 연결 | 미결 — `docs/spec/gap-analysis.md` 미결 결정 | — |
+| LLM 연결 | OpenAI 직접 — AI SDK `ai` 7, `@ai-sdk/openai` 4 (Responses API), 모델 `gpt-5.4-mini` | `apps/web/package.json`, `apps/web/src/app/api/ai/route.ts` |
 
 - 의존성은 그것을 처음 쓰는 코드와 같은 커밋에서 추가한다. "나중에 쓸" 의존성을 미리 넣지 않는다.
 - 위 표에 없는 의존성은 표준 API·기존 의존성으로 불가능할 때만 추가하고, 추가하면 이 표와 `DESIGN.md`에 사유를 적는다.

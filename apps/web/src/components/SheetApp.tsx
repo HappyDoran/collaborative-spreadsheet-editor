@@ -1,14 +1,18 @@
 "use client";
 
-import { useRef, type CSSProperties, type ReactNode } from "react";
+import { cellKey, staleEdits } from "@sheet/core";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import type { Awareness } from "y-protocols/awareness";
 import styled from "styled-components";
+import { useAiEdit } from "@/hooks/useAiEdit";
 import { useIdentity } from "@/hooks/useIdentity";
 import { usePresence, useParticipants } from "@/hooks/usePresence";
 import { useSheet, type SheetActions } from "@/hooks/useSheet";
 import { useSheetCommands } from "@/hooks/useSheetCommands";
+import { useAiStore } from "@/stores/aiStore";
 import { readLastName, useNameStore } from "@/stores/identityStore";
 import { useSelectionStore } from "@/stores/selectionStore";
+import { AiPanel } from "./AiPanel";
 import { FormulaBar } from "./FormulaBar";
 import { Grid } from "./Grid";
 import { NameDialog } from "./NameDialog";
@@ -56,6 +60,36 @@ function Editor({ actions, awareness, version, canUndo, canRedo, name, color }: 
   const active = useSelectionStore((s) => s.active);
   const cell = actions.read(active);
   const { setName, clearName } = useNameStore.getState();
+  const ai = useAiEdit(actions);
+  const aiOpen = useAiStore((s) => s.open);
+  const proposals = useAiStore((s) => s.edits);
+  const read = (addr: Parameters<typeof actions.read>[0]) => actions.read(addr)?.value ?? "";
+  const stale = new Set(staleEdits(proposals, read).map((e) => cellKey(e.addr)));
+  const activeProposal = proposals.find((p) => p.addr.row === active.row && p.addr.col === active.col);
+  const debug = useDebugMode();
+
+  // 이름을 정하고 입력 화면이 닫히면 바로 시트에 입력할 수 있게 그리드로 포커스를 옮긴다
+  useEffect(() => {
+    if (name) inputRef.current?.focus();
+  }, [name]);
+
+  // ⌘K / Ctrl+K: 닫혀 있으면 열고 입력칸으로, 입력칸에 있으면 닫고 그리드로 (DESIGN.md 13절)
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== "k") return;
+      e.preventDefault();
+      const input = document.getElementById("ai-input");
+      if (useAiStore.getState().open && document.activeElement === input) {
+        useAiStore.setState({ open: false });
+        inputRef.current?.focus();
+      } else {
+        useAiStore.setState({ open: true });
+        requestAnimationFrame(() => document.getElementById("ai-input")?.focus());
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   // 버튼으로 실행 취소하면 입력 중이던 내용은 버린다 (엑셀 동작).
   const runHistory = (run: () => void) => {
@@ -66,7 +100,7 @@ function Editor({ actions, awareness, version, canUndo, canRedo, name, color }: 
 
   return (
     <>
-      <TitleBar>
+      <TitleBar debug={debug}>
         <ParticipantMenu participants={participants} onRename={setName} onClearName={clearName} />
       </TitleBar>
       <Toolbar
@@ -76,23 +110,60 @@ function Editor({ actions, awareness, version, canUndo, canRedo, name, color }: 
         canRedo={canRedo}
         onUndo={() => runHistory(actions.undo)}
         onRedo={() => runHistory(actions.redo)}
+        aiOpen={aiOpen}
+        onToggleAi={() => {
+          useAiStore.setState({ open: !aiOpen });
+          if (!aiOpen) requestAnimationFrame(() => document.getElementById("ai-input")?.focus());
+        }}
       />
-      <FormulaBar commands={commands} activeValue={cell?.value ?? ""} gridInputRef={inputRef} />
-      <Grid
-        actions={actions}
-        version={version}
-        others={participants.filter((p) => !p.isSelf)}
+      <FormulaBar
         commands={commands}
-        inputRef={inputRef}
+        activeValue={cell?.value ?? ""}
+        proposal={activeProposal?.after}
+        gridInputRef={inputRef}
       />
+      <Workspace>
+        <Grid
+          actions={actions}
+          version={version}
+          others={participants.filter((p) => !p.isSelf)}
+          proposals={proposals}
+          stale={stale}
+          commands={commands}
+          inputRef={inputRef}
+        />
+        {aiOpen && <AiPanel ai={ai} staleCount={stale.size} gridInputRef={inputRef} />}
+      </Workspace>
       <StatusBar actions={actions} />
     </>
   );
 }
 
-function TitleBar({ children }: { children?: ReactNode }) {
+// 디버깅 버튼은 개발 환경이거나 주소에 ?debug=1이 있을 때만 (DESIGN.md 13절). 개발 환경은 가짜 응답으로 시작한다.
+function useDebugMode() {
+  const [debug] = useState(
+    () => process.env.NODE_ENV !== "production" || new URLSearchParams(window.location.search).has("debug"),
+  );
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "production") useAiStore.setState({ mock: true });
+  }, []);
+  return debug;
+}
+
+function TitleBar({ children, debug = false }: { children?: ReactNode; debug?: boolean }) {
+  const mock = useAiStore((s) => s.mock);
   return (
     <Header>
+      {debug && (
+        <DebugToggle
+          type="button"
+          aria-pressed={mock}
+          title="디버깅: AI 응답을 가짜/실제로 바꿔요"
+          onClick={() => useAiStore.setState({ mock: !mock })}
+        >
+          {mock ? "가짜 응답" : "실제 AI"}
+        </DebugToggle>
+      )}
       <Title>공동 편집 시트</Title>
       {children}
     </Header>
@@ -105,6 +176,33 @@ const Shell = styled.div`
   display: flex;
   flex-direction: column;
   height: 100dvh;
+`;
+
+const Workspace = styled.div`
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+`;
+
+const DebugToggle = styled.button`
+  height: 24px;
+  margin-right: 12px;
+  padding: 0 8px;
+  border: 1px dashed var(--ink-muted);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ink-muted);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+
+  &[aria-pressed="true"] {
+    border-style: solid;
+    border-color: var(--marker-edge);
+    background: var(--marker);
+    color: var(--ink);
+  }
 `;
 
 const Header = styled.header`

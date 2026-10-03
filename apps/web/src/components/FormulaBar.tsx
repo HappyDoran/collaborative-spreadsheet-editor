@@ -10,11 +10,12 @@ import { selectedRange, useSelectionStore } from "@/stores/selectionStore";
 type Props = {
   commands: SheetCommands;
   activeValue: string;
+  proposal?: string; // 활성 셀에 대한 AI 제안 값 (검토 중)
   gridInputRef: RefObject<HTMLInputElement | null>;
 };
 
 // 이름 상자 + 값 편집줄. 편집줄을 누르면 엑셀처럼 편집 모드로 들어가고, 셀 입력칸과 같은 초안을 공유한다.
-export function FormulaBar({ commands, activeValue, gridInputRef }: Props) {
+export function FormulaBar({ commands, activeValue, proposal, gridInputRef }: Props) {
   const { active, extent, mode, draft } = useSelectionStore(
     useShallow((s) => ({ active: s.active, extent: s.extent, mode: s.mode, draft: s.draft })),
   );
@@ -44,6 +45,7 @@ export function FormulaBar({ commands, activeValue, gridInputRef }: Props) {
           }
         }}
       />
+      {proposal !== undefined && <Proposal title="적용하면 이 값으로 바뀌어요">AI 제안: {proposal || "(빈 값)"}</Proposal>}
     </Bar>
   );
 }
@@ -64,6 +66,19 @@ const NameBox = styled.output`
   border-right: 1px solid var(--rule);
   color: var(--ink-muted);
   font-size: 13px;
+`;
+
+const Proposal = styled.span`
+  display: flex;
+  align-items: center;
+  max-width: 40%;
+  padding: 0 10px;
+  overflow: hidden;
+  background: var(--marker);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 `;
 
 const ValueInput = styled.input`

@@ -9,6 +9,7 @@ import {
   readCell,
   readGrid,
   setCellValue,
+  setValues,
   toggleFormat,
   writeGrid,
 } from "./sheet";
@@ -91,6 +92,18 @@ describe("실행 취소", () => {
     undo.undo();
     expect(readCell(doc, { row: 0, col: 0 })?.value).toBe("1");
     expect(readCell(doc, { row: 0, col: 1 })).toBeUndefined();
+  });
+
+  it("여러 셀 값 일괄 쓰기(AI 적용)는 서식을 남기고 한 번의 undo로 되돌린다", () => {
+    const doc = new Y.Doc();
+    const undo = createUndoManager(doc, LOCAL);
+    setCellValue(doc, { row: 0, col: 0 }, "1", LOCAL);
+    toggleFormat(doc, range(0, 0, 0, 0), "bold", LOCAL);
+    setValues(doc, [{ addr: { row: 0, col: 0 }, value: "10" }, { addr: { row: 1, col: 0 }, value: "20" }], LOCAL);
+    expect(readCell(doc, { row: 0, col: 0 })).toEqual({ value: "10", bold: true });
+    undo.undo();
+    expect(readCell(doc, { row: 0, col: 0 })).toEqual({ value: "1", bold: true });
+    expect(readCell(doc, { row: 1, col: 0 })).toBeUndefined();
   });
 
   it("내 변경만 되돌리고 다른 탭의 변경은 남긴다", () => {

@@ -11,6 +11,8 @@ type Props = {
   canRedo: boolean;
   onUndo: () => void;
   onRedo: () => void;
+  aiOpen: boolean;
+  onToggleAi: () => void;
 };
 
 const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
@@ -23,7 +25,7 @@ const FORMAT_BUTTONS: { format: CellFormat; label: string; title: string; key: s
 ];
 
 // 버튼은 mousedown 기본 동작을 막아 셀 입력칸의 포커스를 빼앗지 않는다.
-export function Toolbar({ commands, formats, canUndo, canRedo, onUndo, onRedo }: Props) {
+export function Toolbar({ commands, formats, canUndo, canRedo, onUndo, onRedo, aiOpen, onToggleAi }: Props) {
   return (
     <Bar role="toolbar" aria-label="서식" onMouseDown={(e) => e.preventDefault()}>
       <Button type="button" onClick={onUndo} disabled={!canUndo} title={`실행 취소 (${shortcut("Z")})`} aria-label="실행 취소">
@@ -45,6 +47,9 @@ export function Toolbar({ commands, formats, canUndo, canRedo, onUndo, onRedo }:
           {label}
         </Button>
       ))}
+      <AiButton type="button" aria-pressed={aiOpen} title={`AI 편집 (${shortcut("K")})`} onClick={onToggleAi}>
+        AI 편집
+      </AiButton>
     </Bar>
   );
 }
@@ -85,6 +90,30 @@ const Button = styled.button<{ $format?: CellFormat }>`
   &:disabled {
     color: var(--ink-faint);
     cursor: default;
+  }
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+  }
+`;
+
+const AiButton = styled.button`
+  height: 28px;
+  margin-left: auto;
+  padding: 0 12px;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--header);
+  }
+  &[aria-pressed="true"] {
+    background: var(--marker);
+    border-color: var(--marker-edge);
   }
   &:focus-visible {
     outline: 2px solid var(--accent);

@@ -11,7 +11,9 @@
     "e2e": "playwright test"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^4.0.83",
     "@sheet/core": "workspace:*",
+    "ai": "^7.0.127",
     "next": "15.5.16",
     "react": "19.2.8",
     "react-dom": "19.2.8",
