@@ -1,7 +1,7 @@
 "use client";
 
 import { SHEET_COLS, SHEET_ROWS, colToLabel, type CellAddress, type ProposedEdit } from "@sheet/core";
-import { memo, useEffect, useMemo, useRef, type MouseEvent, type RefObject } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type RefObject } from "react";
 import styled from "styled-components";
 import { useShallow } from "zustand/react/shallow";
 import type { SheetCommands } from "@/hooks/useSheetCommands";
@@ -9,6 +9,8 @@ import type { SheetActions } from "@/hooks/useSheet";
 import type { Participant } from "@/hooks/usePresence";
 import { selectedRange, useSelectionStore } from "@/stores/selectionStore";
 import { COL_W, HEADER_W, ROW_H, rectOf, single } from "./gridGeometry";
+import { shortcut } from "@/hooks/shortcut";
+import { ContextMenu, type MenuItem } from "./ContextMenu";
 import { ProposalLayer } from "./ProposalLayer";
 import { RemoteCursors } from "./RemoteCursors";
 
@@ -20,11 +22,12 @@ type Props = {
   others: Participant[]; // 다른 참여자 — 선택·편집 중 셀 표시
   proposals: ProposedEdit[]; // 검토 중인 AI 제안
   stale: Set<string>; // 검토 중 원래 값이 바뀐 제안의 셀 키
+  onOpenAi: () => void; // 우클릭 메뉴의 "AI로 편집…"
   commands: SheetCommands;
   inputRef: RefObject<HTMLInputElement | null>;
 };
 
-export function Grid({ actions, version, others, proposals, stale, commands, inputRef }: Props) {
+export function Grid({ actions, version, others, proposals, stale, onOpenAi, commands, inputRef }: Props) {
   const { active, extent, copied } = useSelectionStore(
     useShallow((s) => ({ active: s.active, extent: s.extent, copied: s.copied })),
   );
@@ -49,6 +52,7 @@ export function Grid({ actions, version, others, proposals, stale, commands, inp
 
   const onMouseDown = (e: MouseEvent) => {
     const el = target(e);
+    if (e.button === 2) e.preventDefault(); // 우클릭도 셀 입력칸 포커스를 지킨다
     if (!el || e.button !== 0) return;
     e.preventDefault(); // 포커스를 입력칸에 유지
     commands.commit();
@@ -65,6 +69,52 @@ export function Grid({ actions, version, others, proposals, stale, commands, inp
     const el = dragging.current ? target(e) : null;
     if (el?.dataset.row && el.dataset.col) select({ row: Number(el.dataset.row), col: Number(el.dataset.col) }, true);
   };
+
+  // 우클릭 메뉴 (DESIGN.md 14절). 셀 편집 중에는 브라우저 기본 메뉴(글자 복사·맞춤법)를 그대로 둔다.
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
+  const closeMenu = useCallback(() => {
+    setMenu(null);
+    inputRef.current?.focus();
+  }, [inputRef]);
+  const openMenuAtCell = useCallback(() => {
+    const rect = inputRef.current?.getBoundingClientRect();
+    if (rect) setMenu({ x: rect.left + 8, y: rect.bottom });
+  }, [inputRef]);
+
+  const onContextMenu = (e: MouseEvent) => {
+    if (useSelectionStore.getState().mode !== "idle") return;
+    // 메뉴 키는 포커스된 셀 입력칸에서 이벤트가 난다 — 활성 셀 옆에 연다
+    if (e.target === inputRef.current) {
+      e.preventDefault();
+      openMenuAtCell();
+      return;
+    }
+    const el = target(e);
+    if (!el) return;
+    e.preventDefault();
+    commands.commit();
+    const { row, col } = el.dataset;
+    if (row !== undefined && col !== undefined) {
+      // 엑셀처럼: 선택 범위 안이면 범위를 유지, 밖이면 그 셀로 옮긴다
+      const addr = { row: Number(row), col: Number(col) };
+      const inside = addr.row >= range.start.row && addr.row <= range.end.row && addr.col >= range.start.col && addr.col <= range.end.col;
+      if (!inside) select(addr);
+    } else if (col !== undefined) selectRange({ row: 0, col: Number(col) }, { row: SHEET_ROWS - 1, col: Number(col) });
+    else if (row !== undefined) selectRange({ row: Number(row), col: 0 }, { row: Number(row), col: SHEET_COLS - 1 });
+    setMenu({ x: e.clientX, y: e.clientY });
+  };
+
+  const activeCell = actions.read(active);
+  const menuItems: MenuItem[] = [
+    { label: "잘라내기", hint: shortcut("X"), onSelect: () => void commands.copyFromMenu(true) },
+    { label: "복사", hint: shortcut("C"), onSelect: () => void commands.copyFromMenu(false) },
+    { label: "붙여넣기", hint: shortcut("V"), onSelect: () => void commands.pasteFromMenu() },
+    { label: "내용 지우기", hint: "Delete", onSelect: commands.clearSelection },
+    { label: "굵게", hint: shortcut("B"), checked: !!activeCell?.bold, separatorBefore: true, onSelect: () => commands.toggle("bold") },
+    { label: "기울임", hint: shortcut("I"), checked: !!activeCell?.italic, onSelect: () => commands.toggle("italic") },
+    { label: "밑줄", hint: shortcut("U"), checked: !!activeCell?.underline, onSelect: () => commands.toggle("underline") },
+    { label: "AI로 편집…", hint: shortcut("K"), separatorBefore: true, onSelect: onOpenAi },
+  ];
 
   const onDoubleClick = (e: MouseEvent) => {
     if (!target(e)?.dataset.col) return;
@@ -97,7 +147,12 @@ export function Grid({ actions, version, others, proposals, stale, commands, inp
 
   return (
     <Scroller>
-      <Canvas onMouseDown={onMouseDown} onMouseOver={onMouseOver} onDoubleClick={onDoubleClick}>
+      <Canvas
+        onMouseDown={onMouseDown}
+        onMouseOver={onMouseOver}
+        onDoubleClick={onDoubleClick}
+        onContextMenu={onContextMenu}
+      >
         <Corner
           onMouseDown={(e) => {
             e.preventDefault();
@@ -138,8 +193,9 @@ export function Grid({ actions, version, others, proposals, stale, commands, inp
           $multi={proposals.length === 0 && (range.start.row !== range.end.row || range.start.col !== range.end.col)}
         />
         {copied && <CopyBox style={rectOf(copied)} />}
-        <ActiveInput actions={actions} commands={commands} inputRef={inputRef} active={active} />
+        <ActiveInput actions={actions} commands={commands} inputRef={inputRef} active={active} onOpenMenu={openMenuAtCell} />
       </Canvas>
+      {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems} onClose={closeMenu} />}
     </Scroller>
   );
 }
@@ -150,7 +206,8 @@ function ActiveInput({
   commands,
   inputRef,
   active,
-}: Pick<Props, "actions" | "commands" | "inputRef"> & { active: CellAddress }) {
+  onOpenMenu,
+}: Pick<Props, "actions" | "commands" | "inputRef"> & { active: CellAddress; onOpenMenu: () => void }) {
   const { mode, draft } = useSelectionStore(useShallow((s) => ({ mode: s.mode, draft: s.draft })));
   const cell = actions.read(active);
   return (
@@ -167,7 +224,13 @@ function ActiveInput({
       $underline={!!cell?.underline}
       value={mode === "idle" ? "" : draft}
       onChange={(e) => commands.onGridChange(e.target.value)}
-      onKeyDown={commands.onGridKeyDown}
+      onKeyDown={(e) => {
+        // Shift+F10: 키보드로 셀 메뉴 열기 (엑셀). 메뉴 키는 contextmenu 이벤트로 온다.
+        if (e.shiftKey && e.key === "F10" && mode === "idle") {
+          e.preventDefault();
+          onOpenMenu();
+        } else commands.onGridKeyDown(e);
+      }}
       onCopy={(e) => commands.copy(e, false)}
       onCut={(e) => commands.copy(e, true)}
       onPaste={commands.paste}

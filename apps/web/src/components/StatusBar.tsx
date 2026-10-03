@@ -5,6 +5,7 @@ import { forEachAddress } from "@sheet/core";
 import styled from "styled-components";
 import { useShallow } from "zustand/react/shallow";
 import { selectedRange, useSelectionStore, type EditMode } from "@/stores/selectionStore";
+import { useStatusStore } from "@/stores/statusStore";
 
 // 엑셀 상태 표시줄의 "준비 · 입력 · 편집"과 선택 범위 요약.
 const MODE_LABEL: Record<EditMode, string> = { idle: "준비", enter: "입력", edit: "편집" };
@@ -14,6 +15,7 @@ export function StatusBar({ actions }: { actions: SheetActions }) {
     useShallow((s) => ({ active: s.active, extent: s.extent, mode: s.mode })),
   );
   const range = selectedRange({ active, extent });
+  const notice = useStatusStore((s) => s.notice);
 
   let count = 0;
   let numbers = 0;
@@ -30,7 +32,10 @@ export function StatusBar({ actions }: { actions: SheetActions }) {
 
   return (
     <Bar>
-      <span>{MODE_LABEL[mode]}</span>
+      <Left>
+        <span>{MODE_LABEL[mode]}</span>
+        <Notice role="status">{notice}</Notice>
+      </Left>
       {count > 1 && (
         <Summary>
           {numbers > 0 && <span>합계 {sum.toLocaleString("ko-KR", { maximumFractionDigits: 10 })}</span>}
@@ -52,6 +57,16 @@ const Bar = styled.footer`
   background: var(--header);
   color: var(--ink-muted);
   font-size: 12px;
+`;
+
+const Left = styled.div`
+  display: flex;
+  gap: 16px;
+`;
+
+const Notice = styled.span`
+  color: var(--ink);
+  font-weight: 600;
 `;
 
 const Summary = styled.div`

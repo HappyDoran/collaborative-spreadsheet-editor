@@ -59,6 +59,7 @@ last_verified: 2026-10-02
     │   ├── sheet.ts                  # 공용 조작 (시트 열기·이름 지정·셀·이름 상자·아바타)
     │   ├── editing.spec.ts           # M1 편집·선택·서식·클립보드·undo·한글·저장 7건
     │   ├── collaboration.spec.ts     # M2 탭별 이름·새로고침 유지·합류·실시간·동시 편집·목록·원격 표시·탭 종료·undo 범위 9건
+    │   ├── contextMenu.spec.ts       # M3.5 우클릭 메뉴 8건
     │   └── ai.spec.ts                # M3 대상·스트리밍·적용·한 번 undo·중지·버리기·빈 결과·제외·실패·원래 값 바뀜·⌘K·위치 보기·새로고침 유지·다른 탭 상태·모델 선택·닫힌 패널 13건 (가짜 응답)
     └── src/
         ├── app/
@@ -76,24 +77,27 @@ last_verified: 2026-10-02
         ├── stores/
         │   ├── selectionStore.ts     # 셀 포인터·범위, 준비/입력/편집 모드, 초안, Tab 시작 열, 복사 표시
         │   ├── identityStore.ts      # 이름·색(탭 단위 sessionStorage), 마지막 이름(localStorage, 새 탭 기본값)
+        │   ├── statusStore.ts        # 상태 표시줄에 잠깐 띄우는 안내
         │   └── aiStore.ts            # AI 패널·대상 설정·진행 상태·제안·대화 (sessionStorage — 새로고침 유지), 가짜 응답 모드
         ├── hooks/
         │   ├── useSheet.ts           # 세션 수명, UndoManager, 문서 변경 구독(version), 시트 연산 묶음
-        │   ├── useSheetCommands.ts   # 엑셀 키맵·확정·취소·복사/잘라내기/붙여넣기, 클립보드 HTML 표 읽기
+        │   ├── useSheetCommands.ts   # 엑셀 키맵·확정·취소·복사/잘라내기/붙여넣기(키보드·메뉴), 내용 지우기, 클립보드 HTML 표 읽기
+        │   ├── shortcut.ts           # 단축키 표기(⌘ / Ctrl) — 툴바·메뉴·안내 문구가 같이 쓴다
         │   ├── useIdentity.ts        # 저장된 이름·색을 마운트 후 읽기
         │   ├── usePresence.ts        # 내 상태 알리기(이름·색·선택·편집 중·AI 생성/검토 범위), 색 고르기, 참여자 목록
         │   └── useAiEdit.ts          # 보내기·셀 판정·적용·버리기·중지, 대상 범위 결정, 이탈 중 끊긴 요청 무시
         └── components/
             ├── SheetApp.tsx          # 화면 골격(디버깅 버튼·제목·참여자·툴바·값 편집줄·그리드+AI 패널·상태 표시줄), ⌘K, 내 색을 --accent로
-            ├── Grid.tsx              # 고정 100×26 그리드, 선택·복사 테두리, 활성 셀 입력칸
+            ├── Grid.tsx              # 고정 100×26 그리드, 선택·복사 테두리, 활성 셀 입력칸, 우클릭 메뉴 열기
             ├── gridGeometry.ts       # 셀 크기 상수, 범위 → 화면 좌표
             ├── RemoteCursors.tsx     # 다른 참여자 선택·포인터·이름표·입력 중, AI 생성·검토 중 범위(점선·이름표)
             ├── ParticipantMenu.tsx   # 아바타 묶음, 접속자 목록, 이름 바꾸기·지우기
             ├── NameDialog.tsx        # 탭별 이름 지정 (마지막 이름 미리 채움)
             ├── AiPanel.tsx           # AI 패널: 대화·대상 전환·모델 선택·진행·미리보기(제안 수·위치 보기·적용/버리기)·실패 문구, 열고 닫기 애니메이션
+            ├── ContextMenu.tsx       # 엑셀식 우클릭 메뉴 (키보드 이동, 화면 끝 뒤집기, 바깥 클릭·휠로 닫기)
             ├── ProposalLayer.tsx     # 시트 위 AI 제안 (형광펜, 원래 값 취소선, 원래 값 바뀜)
             ├── Toolbar.tsx           # 실행 취소·다시 실행, 굵게·기울임·밑줄, AI 편집 버튼
             ├── FormulaBar.tsx        # 이름 상자 + 값 편집줄 + 활성 셀의 AI 제안
-            ├── StatusBar.tsx         # 준비·입력·편집 표시, 합계·평균·개수
+            ├── StatusBar.tsx         # 준비·입력·편집 표시, 잠깐 안내, 합계·평균·개수
             └── StyledRegistry.tsx    # styled-components SSR 수집
 ```

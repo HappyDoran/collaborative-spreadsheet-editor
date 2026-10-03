@@ -73,6 +73,12 @@ function Editor({ actions, awareness, version, canUndo, canRedo, name, color }: 
     if (name) inputRef.current?.focus();
   }, [name]);
 
+  // AI 패널을 열고 입력칸으로 (툴바 버튼, 우클릭 메뉴). 대상은 지금 선택으로 정해진다.
+  const openAi = () => {
+    useAiStore.setState({ open: true });
+    requestAnimationFrame(() => document.getElementById("ai-input")?.focus());
+  };
+
   // ⌘K / Ctrl+K: 닫혀 있으면 열고 입력칸으로, 입력칸에 있으면 닫고 그리드로 (DESIGN.md 13절)
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -111,10 +117,7 @@ function Editor({ actions, awareness, version, canUndo, canRedo, name, color }: 
         onUndo={() => runHistory(actions.undo)}
         onRedo={() => runHistory(actions.redo)}
         aiOpen={aiOpen}
-        onToggleAi={() => {
-          useAiStore.setState({ open: !aiOpen });
-          if (!aiOpen) requestAnimationFrame(() => document.getElementById("ai-input")?.focus());
-        }}
+        onToggleAi={() => (aiOpen ? useAiStore.setState({ open: false }) : openAi())}
       />
       <FormulaBar
         commands={commands}
@@ -129,6 +132,7 @@ function Editor({ actions, awareness, version, canUndo, canRedo, name, color }: 
           others={participants.filter((p) => !p.isSelf)}
           proposals={proposals}
           stale={stale}
+          onOpenAi={openAi}
           commands={commands}
           inputRef={inputRef}
         />

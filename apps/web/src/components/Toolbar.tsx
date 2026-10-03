@@ -3,6 +3,7 @@
 import type { CellFormat } from "@sheet/core";
 import styled from "styled-components";
 import type { SheetCommands } from "@/hooks/useSheetCommands";
+import { isMac, shortcut } from "@/hooks/shortcut";
 
 type Props = {
   commands: SheetCommands;
@@ -15,8 +16,6 @@ type Props = {
   onToggleAi: () => void;
 };
 
-const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
-const shortcut = (key: string) => (isMac ? `⌘${key}` : `Ctrl+${key}`);
 
 const FORMAT_BUTTONS: { format: CellFormat; label: string; title: string; key: string }[] = [
   { format: "bold", label: "B", title: "굵게", key: "B" },
