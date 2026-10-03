@@ -58,7 +58,7 @@ last_verified: 2026-10-02
     ├── e2e/
     │   ├── sheet.ts                  # 공용 조작 (시트 열기·이름 지정·셀·이름 상자·아바타)
     │   ├── editing.spec.ts           # M1 편집·선택·서식·클립보드·undo·한글·저장 7건
-    │   ├── collaboration.spec.ts     # M2 탭별 이름·새로고침 유지·합류·실시간·동시 편집·목록·원격 표시·탭 종료·undo 범위 9건
+    │   ├── collaboration.spec.ts     # M2 탭별 이름·새로고침 유지·합류·실시간·동시 편집·목록·원격 표시·탭 종료·undo 범위·놓친 변경 따라잡기 10건
     │   ├── collabAi.spec.ts          # M4 두 탭 × AI: 바뀐 칸 건너뛰기·요청 순간 기준·전부 바뀜·겹침 경고 5건
     │   ├── contextMenu.spec.ts       # M3.5 우클릭 메뉴 10건
     │   └── ai.spec.ts                # M3 대상·스트리밍·적용·한 번 undo·중지·버리기·빈 결과·제외·실패·원래 값 바뀜·⌘K·위치 보기·새로고침 유지·다른 탭 상태·모델 선택·닫힌 패널 13건 (가짜 응답)
@@ -74,7 +74,7 @@ last_verified: 2026-10-02
         ├── ai/streamAiEdit.ts        # NDJSON 스트림 읽기, 20초 무응답, 중지
         ├── collab/
         │   ├── sheetSession.ts       # Y.Doc + awareness + IndexedDB 영속 + 탭 간 연결, 탭별 로컬 origin
-        │   └── broadcastProvider.ts  # BroadcastChannel: 문서·awareness update, 합류 인사, 탭 종료 시 제거
+        │   └── broadcastProvider.ts  # BroadcastChannel: 문서·awareness update, 합류 인사, 탭 종료 시 제거, 다시 보일 때 맞추기
         ├── stores/
         │   ├── selectionStore.ts     # 셀 포인터·범위, 준비/입력/편집 모드, 초안, Tab 시작 열, 복사 표시
         │   ├── identityStore.ts      # 이름·색(탭 단위 sessionStorage), 마지막 이름(localStorage, 새 탭 기본값)
