@@ -34,7 +34,7 @@ export function NameDialog({ defaultName, onSubmit }: { defaultName: string; onS
           aria-invalid={error}
           aria-describedby={error ? "name-dialog-error" : undefined}
           maxLength={NAME_MAX_LENGTH}
-          placeholder="예: 김서연"
+          placeholder="예: Anonymous"
           value={value}
           onChange={(e) => {
             setValue(e.target.value);
