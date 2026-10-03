@@ -44,8 +44,11 @@ export function normalizeName(input: string): string | null {
 export function suggestName(last: string, taken: Iterable<string>): string {
   const used = new Set(taken);
   if (!last || !used.has(last)) return last;
-  for (let n = 2; ; n++) {
-    const name = `${Array.from(last).slice(0, NAME_MAX_LENGTH - String(n).length - 1).join("")} ${n}`;
+  // 이미 "민지 2"처럼 번호가 붙어 있으면 그 번호 다음부터 — "민지 2 2"가 되지 않게
+  const numbered = /^(.*\S) (\d+)$/.exec(last);
+  const base = numbered ? numbered[1]! : last;
+  for (let n = numbered ? Number(numbered[2]) + 1 : 2; ; n++) {
+    const name = `${Array.from(base).slice(0, NAME_MAX_LENGTH - String(n).length - 1).join("")} ${n}`;
     if (!used.has(name)) return name;
   }
 }

@@ -50,6 +50,18 @@ test("M2-N4·C1·C2 새 탭: 접속 중인 이름이면 번호를 붙여 제안,
   await expect(cell(a, 1, 1)).toHaveText("from B");
 });
 
+test("M2-N4b 번호가 붙은 이름으로 들어온 뒤 새 탭은 다음 번호를 제안한다 ('2 2'가 아니라 3)", async ({ context }) => {
+  await openSheet(context, "김서연");
+  const b = await context.newPage();
+  await b.goto("/");
+  await expect(nameDialog(b).getByLabel("이름")).toHaveValue("김서연 2");
+  await nameDialog(b).getByRole("button", { name: "시작하기" }).click(); // 제안 그대로 → 마지막 이름 "김서연 2"
+  await expect(myAvatar(b)).toBeVisible();
+  const c = await context.newPage();
+  await c.goto("/");
+  await expect(nameDialog(c).getByLabel("이름")).toHaveValue("김서연 3");
+});
+
 test("M2-C3 같은 셀에 값과 서식을 동시에 바꾸면 둘 다 남는다", async ({ context }) => {
   const a = await openSheet(context);
   const b = await openSheet(context);

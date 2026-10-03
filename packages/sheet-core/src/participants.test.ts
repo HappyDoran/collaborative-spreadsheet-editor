@@ -36,6 +36,12 @@ describe("suggestName", () => {
     expect(suggestName("", ["민지"])).toBe("");
   });
 
+  it("마지막 이름에 이미 번호가 있으면 번호를 겹쳐 붙이지 않고 다음 번호로", () => {
+    expect(suggestName("민지 2", ["민지", "민지 2"])).toBe("민지 3");
+    expect(suggestName("민지 2", ["민지 2"])).toBe("민지 3");
+    expect(suggestName("민지 2", ["민지"])).toBe("민지 2"); // 접속 중이 아니면 그대로
+  });
+
   it("번호를 붙여도 이름 길이 상한을 넘지 않는다", () => {
     const long = "가".repeat(NAME_MAX_LENGTH);
     expect(Array.from(suggestName(long, [long]))).toHaveLength(NAME_MAX_LENGTH);
