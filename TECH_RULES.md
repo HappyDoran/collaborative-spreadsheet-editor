@@ -33,9 +33,9 @@ last_verified: 2026-10-02
 | 상태 | 소유자 | 예 |
 | --- | --- | --- |
 | 공유 + 영속 | `Y.Doc` | 셀 값, 셀 서식 |
-| 공유 + 일시 (탭이 닫히면 사라짐) | Yjs awareness | 참여자 이름·색, 선택 범위, 편집 중 셀, AI 생성·검토 중 범위 |
+| 공유 + 일시 (탭이 닫히면 사라짐) | Yjs awareness | 참여자 이름·색, 선택 범위, 편집 중 셀, AI 생성·검토 중 범위(제안 값은 싣지 않음) |
 | 로컬 + 일시 | Zustand store | 내 선택 앵커, 편집 초안, AI 패널 UI, 내 AI 제안의 진행 상태 |
-| 탭 단위 + 새로고침 유지 | Zustand `persist` + `sessionStorage` | 내 참여자 이름·색 (`apps/web/src/stores/identityStore.ts`) |
+| 탭 단위 + 새로고침 유지 | Zustand `persist` + `sessionStorage` | 내 참여자 이름·색 (`apps/web/src/stores/identityStore.ts`), 적용 전 AI 제안·대화 (`apps/web/src/stores/aiStore.ts`) |
 | 브라우저 단위 + 반영구 | `localStorage` | 마지막에 쓴 이름 — 새 탭 이름 입력의 기본값일 뿐, 참여자 상태가 아니다 |
 
 - 셀 데이터는 `Y.Doc`가 유일한 진실이다. Zustand에 셀 값을 복제하지 않는다 — React는 `Y.Doc` 구독으로 렌더한다.
@@ -58,7 +58,7 @@ last_verified: 2026-10-02
 
 - LLM 호출은 서버 라우트(`apps/web/src/app/api/`)에서만 한다. API 키는 서버 환경 변수로만 읽고 `NEXT_PUBLIC_` 접두를 붙이지 않는다.
 - 클라이언트 요청은 `AbortController`로 취소 가능해야 하고, 서버 라우트는 `request.signal`을 provider 호출까지 전달해 취소 시 생성을 멈춘다.
-- AI 결과는 `Y.Doc`에 바로 쓰지 않는다. 제안(원래 값 / 제안 값)으로 보관하고, 사용자가 적용할 때 transaction 하나로 쓴다 — 요구사항 A3·A5.
+- AI 결과는 `Y.Doc`에 바로 쓰지 않는다. 제안(원래 값 / 제안 값)은 내 탭의 초안(`sessionStorage`)으로 보관하고, 사용자가 셀 하나 또는 전부를 적용할 때 transaction 하나로 쓴다 — 요구사항 A3·A5. 다른 참여자에게는 생성·검토 중인 범위만 awareness로 알린다.
 - 모델 출력은 신뢰 경계 밖의 입력이다. 셀 주소·범위·형식을 검증한 뒤에만 제안으로 받아들인다. 대상 범위 밖 셀을 바꾸는 출력은 거부한다.
 - 지연·스트리밍·실패·취소는 각각 사용자에게 구분되는 상태로 보여야 한다 — 요구사항 A4·A6.
 

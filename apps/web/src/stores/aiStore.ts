@@ -1,7 +1,9 @@
 import type { AiErrorCode, AiScope, ProposedEdit } from "@sheet/core";
 import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 
-// AI 편집의 로컬 상태 (탭마다, 저장하지 않음 — DESIGN.md 13절). 시트 값은 들고 있지 않다: 제안의 원래 값·새 값만.
+// AI 편집의 로컬 상태 (DESIGN.md 13절 D안). 적용 전 제안은 내 탭의 초안이라 sessionStorage에 둔다 —
+// 새로고침해도 남고 탭을 닫으면 사라진다. 시트 값은 들고 있지 않다: 제안의 원래 값·새 값만.
 
 // reading: 요청을 보내고 첫 응답을 기다림 / streaming: 셀이 채워지는 중 / review: 적용·버리기 대기
 export type AiStatus = "idle" | "reading" | "streaming" | "review";
@@ -13,31 +15,55 @@ export type AiMessage =
 type AiState = {
   open: boolean;
   scopeMode: "auto" | "selection" | "sheet"; // auto: 여러 칸이면 선택 범위, 한 칸이면 시트 전체
-  mock: boolean; // 가짜 응답 모드 (디버깅 버튼)
+  mock: boolean; // 가짜 응답 모드 (디버깅 버튼) — 저장하지 않는다
   status: AiStatus;
   scope: AiScope; // 보낸 순간 고정된 대상
-  edits: ProposedEdit[];
+  edits: ProposedEdit[]; // 아직 결정하지 않은 제안
   excluded: number; // 대상 밖·잘못된 주소로 버린 제안 수
+  applied: number; // 이번 검토에서 적용한 셀 수 (셀별 결정 집계)
+  discarded: number;
   messages: AiMessage[];
   lastInstruction: string;
 };
 
-let nextId = 1;
-
-export const useAiStore = create<AiState>()(() => ({
-  open: false,
-  scopeMode: "auto",
-  mock: false,
+const IDLE_RUN: Pick<AiState, "status" | "scope" | "edits" | "excluded" | "applied" | "discarded"> = {
   status: "idle",
   scope: null,
   edits: [],
   excluded: 0,
-  messages: [],
-  lastInstruction: "",
-}));
+  applied: 0,
+  discarded: 0,
+};
 
-export function pushMessage(message: Omit<Extract<AiMessage, { role: "user" | "ai" | "notice" }>, "id"> | Omit<Extract<AiMessage, { role: "error" }>, "id">) {
-  useAiStore.setState((s) => ({ messages: [...s.messages, { ...message, id: nextId++ } as AiMessage] }));
+export const useAiStore = create<AiState>()(
+  persist(
+    (): AiState => ({
+      open: false,
+      scopeMode: "auto",
+      mock: false,
+      ...IDLE_RUN,
+      messages: [],
+      lastInstruction: "",
+    }),
+    {
+      name: "sheet:ai",
+      storage: createJSONStorage(() => sessionStorage),
+      skipHydration: true, // hooks/useAiEdit가 마운트 후 읽는다
+      partialize: (s) => ({ ...s, mock: false }), // 가짜 응답 모드는 디버깅 버튼·환경이 정한다
+      // 생성 중에 새로고침하면 스트림을 이어 받을 수 없다 — 받은 제안을 버린다
+      merge: (persisted, current): AiState => {
+        const saved = { ...(persisted as Partial<AiState>), mock: current.mock };
+        if (saved.status !== "reading" && saved.status !== "streaming") return { ...current, ...saved };
+        const messages = saved.messages ?? [];
+        const notice: AiMessage = { id: nextId(messages), role: "notice", text: "새로고침으로 생성이 멈췄어요." };
+        return { ...current, ...saved, ...IDLE_RUN, messages: [...messages, notice] };
+      },
+    },
+  ),
+);
+
+export function pushMessage(message: { role: "user" | "ai" | "notice"; text: string } | { role: "error"; code: AiErrorCode }) {
+  useAiStore.setState((s) => ({ messages: [...s.messages, { ...message, id: nextId(s.messages) } as AiMessage] }));
 }
 
 // 생성 중 AI 설명이 이어서 오면 마지막 AI 말풍선에 붙인다
@@ -45,8 +71,11 @@ export function appendAiText(text: string) {
   useAiStore.setState((s) => {
     const last = s.messages.at(-1);
     if (last?.role === "ai") return { messages: [...s.messages.slice(0, -1), { ...last, text: `${last.text}\n${text}` }] };
-    return { messages: [...s.messages, { id: nextId++, role: "ai", text }] };
+    return { messages: [...s.messages, { id: nextId(s.messages), role: "ai", text }] };
   });
 }
 
-export const endRun = () => useAiStore.setState({ status: "idle", scope: null, edits: [], excluded: 0 });
+export const endRun = () => useAiStore.setState(IDLE_RUN);
+
+// 새로고침 뒤에도 메시지 id가 겹치지 않게 저장된 목록에서 이어 센다
+const nextId = (messages: AiMessage[]) => (messages.at(-1)?.id ?? 0) + 1;

@@ -1,4 +1,4 @@
-import type { CellAddress } from "./address";
+import type { CellAddress, CellRange } from "./address";
 
 // 흰 글자 대비 4.5:1 이상, 종이색 위 2px 테두리로 구분되는 10색 (DESIGN.md 12절).
 export const PARTICIPANT_COLORS = [
@@ -20,6 +20,9 @@ export const NAME_MAX_LENGTH = 20;
 export type PresenceState = {
   user: { name: string; color: string };
   cursor: { active: CellAddress; extent: CellAddress; editing: boolean } | null;
+  // AI 생성·검토 중인 범위 (DESIGN.md 13절 D안). 제안 값은 싣지 않는다 — 확정 값으로 오해하지 않게.
+  // area: 생성 중이면 대상 범위, 검토 중이면 남은 제안을 감싸는 범위. null = 시트 전체.
+  ai: { state: "generating" | "reviewing"; area: CellRange | null } | null;
 };
 
 // 쓰이지 않은 색 중 무작위. 전부 쓰였으면 전체에서 무작위.

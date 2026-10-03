@@ -54,10 +54,14 @@ export function ParticipantMenu({ participants, onRename, onClearName }: Props) 
                 {p.user.name}
                 {p.isSelf && <Muted> (나)</Muted>}
               </Name>
-              {p.cursor && (
-                <Muted>
-                  {toA1(p.cursor.active)} {p.cursor.editing ? "입력 중" : ""}
-                </Muted>
+              {p.ai ? (
+                <Muted>{p.ai.state === "generating" ? "AI 생성 중" : "AI 검토 중"}</Muted>
+              ) : (
+                p.cursor && (
+                  <Muted>
+                    {toA1(p.cursor.active)} {p.cursor.editing ? "입력 중" : ""}
+                  </Muted>
+                )
               )}
             </Row>
           ))}

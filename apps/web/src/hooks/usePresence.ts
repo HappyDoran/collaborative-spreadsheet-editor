@@ -1,8 +1,9 @@
 "use client";
 
-import { pickColor, type PresenceState } from "@sheet/core";
+import { pickColor, type CellRange, type PresenceState } from "@sheet/core";
 import { useEffect, useMemo, useSyncExternalStore } from "react";
 import type { Awareness } from "y-protocols/awareness";
+import { useAiStore } from "@/stores/aiStore";
 import { useColorStore } from "@/stores/identityStore";
 import { useSelectionStore } from "@/stores/selectionStore";
 
@@ -30,16 +31,43 @@ export function usePresence(awareness: Awareness, name: string | null, color: st
       extent: s.extent,
       editing: s.mode !== "idle",
     });
-    const state: PresenceState = { user: { name, color }, cursor: cursorOf(useSelectionStore.getState()) };
+    const state: PresenceState = {
+      user: { name, color },
+      cursor: cursorOf(useSelectionStore.getState()),
+      ai: aiOf(useAiStore.getState()),
+    };
     awareness.setLocalState(state);
-    return useSelectionStore.subscribe((s, prev) => {
+    const offSelection = useSelectionStore.subscribe((s, prev) => {
       if (s.active === prev.active && s.extent === prev.extent && (s.mode === "idle") === (prev.mode === "idle")) return;
       awareness.setLocalStateField("cursor", cursorOf(s));
     });
+    const offAi = useAiStore.subscribe((s, prev) => {
+      if (s.status !== prev.status || s.edits !== prev.edits) awareness.setLocalStateField("ai", aiOf(s));
+    });
+    return () => {
+      offSelection();
+      offAi();
+    };
   }, [awareness, name, color]);
 }
 
 const NO_PARTICIPANTS: Participant[] = [];
+
+function aiOf(s: ReturnType<typeof useAiStore.getState>): PresenceState["ai"] {
+  if (s.status === "idle") return null;
+  if (s.status !== "review") return { state: "generating", area: s.scope };
+  return { state: "reviewing", area: boundsOf(s.edits.map((e) => e.addr)) };
+}
+
+function boundsOf(cells: { row: number; col: number }[]): CellRange | null {
+  if (!cells.length) return null;
+  const rows = cells.map((c) => c.row);
+  const cols = cells.map((c) => c.col);
+  return {
+    start: { row: Math.min(...rows), col: Math.min(...cols) },
+    end: { row: Math.max(...rows), col: Math.max(...cols) },
+  };
+}
 
 export type Participant = PresenceState & { clientId: number; isSelf: boolean };
 

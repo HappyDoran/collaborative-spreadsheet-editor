@@ -9,7 +9,7 @@ import type { SheetActions } from "@/hooks/useSheet";
 import type { Participant } from "@/hooks/usePresence";
 import { selectedRange, useSelectionStore } from "@/stores/selectionStore";
 import { COL_W, HEADER_W, ROW_H, rectOf, single } from "./gridGeometry";
-import { ProposalLayer } from "./ProposalLayer";
+import { ProposalActions, ProposalLayer } from "./ProposalLayer";
 import { RemoteCursors } from "./RemoteCursors";
 
 const NUMERIC = /^[-+]?(\d{1,3}(,\d{3})*|\d+)?(\.\d+)?%?$/;
@@ -20,11 +20,12 @@ type Props = {
   others: Participant[]; // 다른 참여자 — 선택·편집 중 셀 표시
   proposals: ProposedEdit[]; // 검토 중인 AI 제안
   stale: Set<string>; // 검토 중 원래 값이 바뀐 제안의 셀 키
+  onDecide: (addr: CellAddress, apply: boolean) => void; // 제안 셀 하나를 적용·버리기
   commands: SheetCommands;
   inputRef: RefObject<HTMLInputElement | null>;
 };
 
-export function Grid({ actions, version, others, proposals, stale, commands, inputRef }: Props) {
+export function Grid({ actions, version, others, proposals, stale, onDecide, commands, inputRef }: Props) {
   const { active, extent, copied } = useSelectionStore(
     useShallow((s) => ({ active: s.active, extent: s.extent, copied: s.copied })),
   );
@@ -131,6 +132,7 @@ export function Grid({ actions, version, others, proposals, stale, commands, inp
         {cells}
 
         <ProposalLayer edits={proposals} stale={stale} />
+        <ProposalActions edits={proposals} onDecide={onDecide} />
         <RemoteCursors others={others} />
         <RangeBox style={rectOf(range)} $multi={range.start.row !== range.end.row || range.start.col !== range.end.col} />
         {copied && <CopyBox style={rectOf(copied)} />}
