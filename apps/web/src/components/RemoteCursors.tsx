@@ -10,20 +10,27 @@ import { rectOf, single } from "./gridGeometry";
 export function RemoteCursors({ others }: { others: Participant[] }) {
   return others.map(({ clientId, cursor, user, ai }) => {
     if (!cursor) return null;
+    const style = { "--who": user.color } as React.CSSProperties;
+
+    // AI 작업 중에는 그 사람의 표시를 AI 범위 하나로 합친다 — 선택·포인터·이름표가 겹쳐 값을 가리지 않게
+    if (ai?.area) {
+      const area = rectOf(ai.area);
+      return (
+        <Layer key={clientId} style={style}>
+          <AiArea style={area} />
+          <AiTag style={{ top: area.top, left: area.left }} $below={ai.area.start.row === 0}>
+            {user.name} · {ai.state === "generating" ? "AI 생성 중" : "AI 검토 중"}
+          </AiTag>
+        </Layer>
+      );
+    }
+
     const range = normalizeRange(cursor.active, cursor.extent);
     const multi = range.start.row !== range.end.row || range.start.col !== range.end.col;
     const cell = rectOf(single(cursor.active));
     return (
-      <Layer key={clientId} style={{ "--who": user.color } as React.CSSProperties}>
+      <Layer key={clientId} style={style}>
         {multi && <Range style={rectOf(range)} />}
-        {ai?.area && (
-          <>
-            <AiArea style={rectOf(ai.area)} />
-            <AiTag style={{ top: rectOf(ai.area).top, left: rectOf(ai.area).left }}>
-              {user.name} · {ai.state === "generating" ? "AI 생성 중" : "AI 검토 중"}
-            </AiTag>
-          </>
-        )}
         <Pointer style={cell} $editing={cursor.editing} />
         <Tag style={{ top: cell.top, left: cell.left + cell.width }} $below={cursor.active.row === 0}>
           {cursor.editing ? `${user.name} · 입력 중` : user.name}
@@ -67,12 +74,12 @@ const AiArea = styled.div`
   );
 `;
 
-// 범위 왼쪽 위에 붙는 AI 상태 이름표. 셀 포인터 이름표(오른쪽 위)와 자리를 나눈다.
-const AiTag = styled.div`
+// 범위 왼쪽 위에 붙는 AI 상태 이름표. 첫 행이면 머리글에 가리지 않게 범위 안쪽 위에 둔다.
+const AiTag = styled.div<{ $below: boolean }>`
   position: absolute;
   z-index: 2;
   pointer-events: none;
-  transform: translateY(-100%);
+  transform: ${(p) => (p.$below ? "none" : "translateY(-100%)")};
   padding: 1px 6px;
   border: 1px dashed var(--who);
   border-radius: 3px 3px 0 0;

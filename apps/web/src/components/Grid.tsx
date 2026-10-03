@@ -132,7 +132,11 @@ export function Grid({ actions, version, others, proposals, stale, commands, inp
 
         <ProposalLayer edits={proposals} stale={stale} />
         <RemoteCursors others={others} />
-        <RangeBox style={rectOf(range)} $multi={range.start.row !== range.end.row || range.start.col !== range.end.col} />
+        {/* 제안이 있는 동안은 선택 배경을 칠하지 않는다 — 형광펜과 섞여 탁해지지 않게 */}
+        <RangeBox
+          style={rectOf(range)}
+          $multi={proposals.length === 0 && (range.start.row !== range.end.row || range.start.col !== range.end.col)}
+        />
         {copied && <CopyBox style={rectOf(copied)} />}
         <ActiveInput actions={actions} commands={commands} inputRef={inputRef} active={active} />
       </Canvas>
