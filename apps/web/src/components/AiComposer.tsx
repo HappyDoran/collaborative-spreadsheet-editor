@@ -113,20 +113,24 @@ export function AiComposer({ ai, others, draft, onDraftChange: setDraft, gridInp
 export const Button = styled.button<{ $primary?: boolean }>`
   height: 30px;
   padding: 0 12px;
-  border: 1px solid ${(p) => (p.$primary ? "var(--ink)" : "var(--rule)")};
+  border: 1px solid ${(p) => (p.$primary ? "var(--primary)" : "var(--rule)")};
   border-radius: 4px;
-  background: ${(p) => (p.$primary ? "var(--ink)" : "#fff")};
+  background: ${(p) => (p.$primary ? "var(--primary)" : "#fff")};
   color: ${(p) => (p.$primary ? "#fff" : "var(--ink)")};
   font: inherit;
   font-weight: 600;
   cursor: pointer;
 
+  &:hover:not(:disabled) {
+    background: ${(p) => (p.$primary ? "var(--primary-hover)" : "var(--header)")};
+    border-color: ${(p) => (p.$primary ? "var(--primary-hover)" : "var(--rule)")};
+  }
   &:disabled {
     opacity: 0.4;
     cursor: default;
   }
   &:focus-visible {
-    outline: 2px solid var(--accent);
+    outline: 2px solid var(--primary);
     outline-offset: 2px;
   }
 `;
@@ -182,8 +186,8 @@ const Segment = styled.button`
     border-left: 1px solid var(--rule);
   }
   &[aria-pressed="true"] {
-    background: var(--ink);
-    color: #fff;
+    background: var(--primary-weak);
+    color: var(--primary);
   }
   &:disabled {
     cursor: default;
@@ -202,7 +206,7 @@ const Input = styled.textarea`
   line-height: 1.5;
 
   &:focus {
-    outline: 2px solid var(--accent);
+    outline: 2px solid var(--primary);
     outline-offset: -1px;
   }
 `;
@@ -225,7 +229,7 @@ const ModelSelect = styled.select`
   font-size: 12px;
 
   &:focus-visible {
-    outline: 2px solid var(--accent);
+    outline: 2px solid var(--primary);
     outline-offset: 1px;
   }
   &:disabled {

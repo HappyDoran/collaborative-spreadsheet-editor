@@ -89,7 +89,7 @@ const Input = styled.input`
   font-size: 14px;
 
   &:focus {
-    outline: 2px solid var(--ink);
+    outline: 2px solid var(--primary);
     outline-offset: -1px;
   }
   &[aria-invalid="true"] {
@@ -109,14 +109,17 @@ const Submit = styled.button`
   margin-top: 16px;
   border: 0;
   border-radius: 4px;
-  background: var(--ink);
+  background: var(--primary);
   color: #fff;
   font: inherit;
   font-weight: 600;
   cursor: pointer;
 
+  &:hover {
+    background: var(--primary-hover);
+  }
   &:focus-visible {
-    outline: 2px solid var(--ink);
+    outline: 2px solid var(--primary);
     outline-offset: 2px;
   }
 `;

@@ -279,11 +279,12 @@ const Example = styled.button`
   cursor: pointer;
 
   &:hover {
-    background: var(--header);
+    border-color: var(--primary);
+    background: var(--primary-weak);
   }
 
   &:focus-visible {
-    outline: 2px solid var(--accent);
+    outline: 2px solid var(--primary);
     outline-offset: 2px;
   }
 `;
@@ -342,8 +343,9 @@ const InlineButton = styled.button`
   padding: 0;
   border: 0;
   background: none;
-  color: var(--ink);
+  color: var(--primary);
   font: inherit;
+  font-weight: 600;
   text-decoration: underline;
   cursor: pointer;
 `;

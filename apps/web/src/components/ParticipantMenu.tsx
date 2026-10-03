@@ -123,19 +123,20 @@ const Wrapper = styled.div`
 
 const InviteLink = styled.a`
   padding: 5px 10px;
-  border: 1px solid var(--rule);
   border-radius: 6px;
-  color: var(--ink);
+  background: var(--primary-weak);
+  color: var(--primary);
+  font-weight: 600;
   font-size: 12px;
   text-decoration: none;
   white-space: nowrap;
 
   &:hover {
-    background: var(--header);
+    background: var(--primary-weak-hover);
   }
 
   &:focus-visible {
-    outline: 2px solid var(--accent);
+    outline: 2px solid var(--primary);
     outline-offset: 2px;
   }
 `;
@@ -240,7 +241,7 @@ const TextButton = styled.button<{ $danger?: boolean }>`
   border: 0;
   border-radius: 4px;
   background: transparent;
-  color: ${(p) => (p.$danger ? "var(--danger)" : "var(--ink)")};
+  color: ${(p) => (p.$danger ? "var(--danger)" : "var(--primary)")};
   font: inherit;
   cursor: pointer;
 
@@ -271,7 +272,7 @@ const RenameInput = styled.input`
   font: inherit;
 
   &:focus {
-    outline: 2px solid var(--accent);
+    outline: 2px solid var(--primary);
     outline-offset: -1px;
   }
 `;

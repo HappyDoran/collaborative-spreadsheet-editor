@@ -10,6 +10,11 @@
   --marker-edge: #e6c22e;
   --danger: #b42318;
   --accent: #2735c4;
+  /* 버튼 색 체계 (Toss blue) — 참여자 색(--accent, 탭마다 다름)과 분리해 버튼은 늘 같은 색이다 */
+  --primary: #3182f6;
+  --primary-hover: #1b64da;
+  --primary-weak: #e8f3ff;
+  --primary-weak-hover: #c9e2ff;
 }
 
 * {

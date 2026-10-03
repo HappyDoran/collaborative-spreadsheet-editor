@@ -89,15 +89,15 @@ const Button = styled.button<{ $format?: CellFormat }>`
     background: var(--header);
   }
   &[aria-pressed="true"] {
-    background: var(--accent-wash);
-    color: var(--accent);
+    background: var(--primary-weak);
+    color: var(--primary);
   }
   &:disabled {
     color: var(--ink-faint);
     cursor: default;
   }
   &:focus-visible {
-    outline: 2px solid var(--accent);
+    outline: 2px solid var(--primary);
   }
 `;
 
@@ -116,12 +116,17 @@ const AiButton = styled.button`
   &:hover {
     background: var(--header);
   }
+  /* 패널이 열려 있음 */
   &[aria-pressed="true"] {
-    background: var(--marker);
-    border-color: var(--marker-edge);
+    border-color: var(--primary);
+    background: var(--primary-weak);
+    color: var(--primary);
+  }
+  &[aria-pressed="true"]:hover {
+    background: var(--primary-weak-hover);
   }
   &:focus-visible {
-    outline: 2px solid var(--accent);
+    outline: 2px solid var(--primary);
   }
 `;
 
