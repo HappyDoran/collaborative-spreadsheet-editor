@@ -1,7 +1,7 @@
 ---
 title: 현재 폴더 구성 스냅샷
 kind: snapshot
-last_verified: 2026-10-02
+last_verified: 2026-10-03
 ---
 
 # 현재 폴더 구성 스냅샷
@@ -17,6 +17,7 @@ last_verified: 2026-10-02
 ├── README.md                         # 실행·검증 명령, 다중 탭 매트릭스
 ├── LLM_REPORT.md                     # LLM 활용 리포트
 ├── mise.toml                         # node·pnpm 버전 정본
+├── .vercelignore                     # Vercel CLI 배포 업로드 제외 (로컬 비밀·금칙어·테스트 산출물)
 ├── package.json                      # 루트 스크립트 (dev·test·typecheck·lint·build·check)
 ├── pnpm-workspace.yaml               # apps/*, packages/*
 ├── docs/
