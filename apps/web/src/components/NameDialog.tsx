@@ -90,13 +90,13 @@ const Input = styled.input`
     outline-offset: -1px;
   }
   &[aria-invalid="true"] {
-    border-color: #b42318;
+    border-color: var(--danger);
   }
 `;
 
 const Error = styled.p`
   margin: 6px 0 0;
-  color: #b42318;
+  color: var(--danger);
   font-size: 12px;
 `;
 

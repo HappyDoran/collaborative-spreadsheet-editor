@@ -217,7 +217,7 @@ const TextButton = styled.button<{ $danger?: boolean }>`
   border: 0;
   border-radius: 4px;
   background: transparent;
-  color: ${(p) => (p.$danger ? "#b42318" : "var(--ink)")};
+  color: ${(p) => (p.$danger ? "var(--danger)" : "var(--ink)")};
   font: inherit;
   cursor: pointer;
 
