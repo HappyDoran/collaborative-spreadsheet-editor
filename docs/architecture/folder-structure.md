@@ -58,16 +58,16 @@ last_verified: 2026-10-03
     ├── playwright.config.ts          # E2E: Chromium, 3100번 포트 dev 서버, 테스트마다 새 컨텍스트
     ├── e2e/
     │   ├── sheet.ts                  # 공용 조작 (시트 열기·이름 지정·셀·이름 상자·아바타)
-    │   ├── editing.spec.ts           # M1 편집·선택·서식·클립보드·undo·한글·저장 7건
-    │   ├── collaboration.spec.ts     # M2 탭별 이름·새로고침 유지·합류·실시간·동시 편집·목록·원격 표시·탭 종료·undo 범위·놓친 변경 따라잡기·가려진 탭 깜박임 11건
+    │   ├── editing.spec.ts           # M1 편집·선택·서식·클립보드(엑셀·시트·문서 HTML)·undo·한글·저장·머리글 12건
+    │   ├── collaboration.spec.ts     # M2 탭별 이름·새로고침 유지·합류·실시간·동시 편집·목록·원격 표시·탭 종료·undo 범위·놓친 변경 따라잡기·가려진 탭 깜박임·편집 중 원격 변경 12건
     │   ├── collabAi.spec.ts          # M4 두 탭 × AI: 바뀐 칸 건너뛰기·요청 순간 기준·전부 바뀜·겹침 경고 5건
     │   ├── contextMenu.spec.ts       # M3.5 우클릭 메뉴 10건
-    │   └── ai.spec.ts                # M3 대상·스트리밍·적용·한 번 undo·중지·버리기·빈 결과·제외·실패·원래 값 바뀜·⌘K·위치 보기·새로고침 유지·다른 탭 상태·모델 선택·닫힌 패널 13건 (가짜 응답)
+    │   └── ai.spec.ts                # M3 대상·스트리밍·적용·한 번 undo·중지·버리기·빈 결과·제외·실패·원래 값 바뀜·⌘K·위치 보기·새로고침 유지·다른 탭 상태·모델 선택·닫힌 패널·다시 시도 범위·플랫폼 오류·서버 범위 검증 16건 (가짜 응답)
     └── src/
         ├── app/
         │   ├── layout.tsx            # StyledRegistry로 감쌈
         │   ├── page.tsx              # SheetApp
-        │   ├── globals.css           # 시각 토큰(DESIGN.md 10절, AI 형광펜), 시스템 한글 글꼴
+        │   ├── globals.css           # 시각 토큰(DESIGN.md 10절, AI 형광펜), Pretendard(시스템 한글 글꼴 대체)
         │   └── api/ai/
         │       ├── route.ts          # OpenAI 호출(streamText + Output.array) → NDJSON, 오류 코드 분류, 크기 상한
         │       ├── prompt.ts         # 모델 지시문, 요청 프롬프트 조립
