@@ -28,7 +28,7 @@ export function AiPanel({ ai, staleCount, gridInputRef }: Props) {
   const { status, scope, edits, messages, mock, scopeMode } = useAiStore(
     useShallow((s) => ({ status: s.status, scope: s.scope, edits: s.edits, messages: s.messages, mock: s.mock, scopeMode: s.scopeMode })),
   );
-  const [active] = useSelectionStore(useShallow((s) => [s.active, s.extent])); // 대상 표시가 선택을 따라가게
+  useSelectionStore(useShallow((s) => [s.active, s.extent])); // 대기 중 대상 표시가 선택을 따라가게
   const [draft, setDraft] = useState("");
   const running = status === "reading" || status === "streaming";
   const target = status === "idle" ? resolveScope(scopeMode) : scope;
@@ -46,18 +46,11 @@ export function AiPanel({ ai, staleCount, gridInputRef }: Props) {
     if (firstEdit) document.querySelector(`[data-proposal="${firstEdit}"]`)?.scrollIntoView({ block: "center", inline: "center" });
   }, [firstEdit]);
 
-  // 검토 위치: 활성 셀이 제안이면 그 순서, 아니면 아직 없음(0). 이전·다음은 그 제안 셀을 선택하고 화면에 보인다.
-  const index = edits.findIndex((e) => e.addr.row === active.row && e.addr.col === active.col);
-  const go = (step: number) => {
-    if (!edits.length) return;
-    const next = edits[(index + step + edits.length) % edits.length]!;
-    useSelectionStore.getState().select(next.addr);
-    requestAnimationFrame(() =>
-      document
-        .querySelector(`[data-proposal="${next.addr.row}:${next.addr.col}"]`)
-        ?.scrollIntoView({ block: "center", inline: "center", behavior: "smooth" }),
-    );
-    gridInputRef.current?.focus();
+  // 시트 전체가 대상이면 제안이 화면 밖에 있을 수 있다 — 누를 때마다 다음 제안 칸으로 스크롤만 한다(선택은 그대로)
+  const cursor = useRef(0);
+  const showNext = () => {
+    const boxes = document.querySelectorAll("[data-proposal]");
+    boxes[cursor.current++ % Math.max(boxes.length, 1)]?.scrollIntoView({ block: "center", inline: "center", behavior: "smooth" });
   };
 
   const send = () => {
@@ -110,25 +103,19 @@ export function AiPanel({ ai, staleCount, gridInputRef }: Props) {
       {status === "review" && (
         <Review>
           <Preview>미리보기예요. 아직 시트에 적용되지 않았어요.</Preview>
-          <Navigator>
-            <span>
-              {index >= 0 ? `${index + 1} / ${edits.length}` : `제안 ${edits.length}개`}
-            </span>
-            <IconButton type="button" aria-label="이전 제안" onClick={() => go(-1)}>
-              ‹
-            </IconButton>
-            <IconButton type="button" aria-label="다음 제안" onClick={() => go(index >= 0 ? 1 : 0)}>
-              ›
-            </IconButton>
-            <Muted>셀을 선택하면 하나씩 적용할 수 있어요</Muted>
-          </Navigator>
+          <Summary>
+            <span>제안 {edits.length}개</span>
+            <InlineButton type="button" onClick={showNext} title="누를 때마다 다음 제안 칸으로 스크롤해요">
+              위치 보기
+            </InlineButton>
+          </Summary>
           {staleCount > 0 && <Warn>{staleCount}개 셀의 원래 값이 검토하는 동안 바뀌었어요.</Warn>}
           <Actions>
-            <Button type="button" $primary onClick={() => (ai.applyAll(), backToGrid())}>
-              {staleCount > 0 ? "그래도 모두 적용" : "모두 적용"}
+            <Button type="button" $primary onClick={() => (ai.apply(), backToGrid())}>
+              {staleCount > 0 ? "그래도 적용" : "적용"}
             </Button>
-            <Button type="button" onClick={() => (ai.discardAll(), backToGrid())}>
-              모두 버리기
+            <Button type="button" onClick={() => (ai.discard(), backToGrid())}>
+              버리기
             </Button>
           </Actions>
         </Review>
@@ -344,35 +331,10 @@ const InlineButton = styled.button`
   cursor: pointer;
 `;
 
-const Navigator = styled.div`
+const Summary = styled.div`
   display: flex;
-  align-items: center;
-  gap: 4px;
+  align-items: baseline;
   font-variant-numeric: tabular-nums;
-
-  & > span:first-child {
-    min-width: 52px;
-    font-weight: 600;
-  }
-`;
-
-const IconButton = styled.button`
-  width: 24px;
-  height: 24px;
-  border: 1px solid var(--rule);
-  border-radius: 4px;
-  background: #fff;
-  color: var(--ink);
-  font: inherit;
-  font-size: 15px;
-  line-height: 1;
-  cursor: pointer;
-`;
-
-const Muted = styled.span`
-  margin-left: 4px;
-  color: var(--ink-muted);
-  font-size: 11px;
 `;
 
 const Composer = styled.form`

@@ -129,7 +129,6 @@ function Editor({ actions, awareness, version, canUndo, canRedo, name, color }: 
           others={participants.filter((p) => !p.isSelf)}
           proposals={proposals}
           stale={stale}
-          onDecide={(addr, apply) => (apply ? ai.applyOne(addr) : ai.discardOne(addr))}
           commands={commands}
           inputRef={inputRef}
         />

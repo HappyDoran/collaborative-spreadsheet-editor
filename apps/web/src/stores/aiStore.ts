@@ -18,21 +18,17 @@ type AiState = {
   mock: boolean; // 가짜 응답 모드 (디버깅 버튼) — 저장하지 않는다
   status: AiStatus;
   scope: AiScope; // 보낸 순간 고정된 대상
-  edits: ProposedEdit[]; // 아직 결정하지 않은 제안
+  edits: ProposedEdit[]; // 검토 중인 제안 — 한 번에 적용하거나 버린다
   excluded: number; // 대상 밖·잘못된 주소로 버린 제안 수
-  applied: number; // 이번 검토에서 적용한 셀 수 (셀별 결정 집계)
-  discarded: number;
   messages: AiMessage[];
   lastInstruction: string;
 };
 
-const IDLE_RUN: Pick<AiState, "status" | "scope" | "edits" | "excluded" | "applied" | "discarded"> = {
+const IDLE_RUN: Pick<AiState, "status" | "scope" | "edits" | "excluded"> = {
   status: "idle",
   scope: null,
   edits: [],
   excluded: 0,
-  applied: 0,
-  discarded: 0,
 };
 
 export const useAiStore = create<AiState>()(

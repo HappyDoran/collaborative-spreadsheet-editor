@@ -70,7 +70,7 @@ export function useAiEdit(actions: SheetActions) {
       const scope = resolveScope(state().scopeMode);
       const { text: context } = sheetContext(read, scope);
       pushMessage({ role: "user", text: instruction });
-      useAiStore.setState({ status: "reading", scope, edits: [], excluded: 0, applied: 0, discarded: 0, lastInstruction: instruction });
+      useAiStore.setState({ status: "reading", scope, edits: [], excluded: 0, lastInstruction: instruction });
 
       const ctrl = new AbortController();
       controller.current = ctrl;
@@ -103,36 +103,21 @@ export function useAiEdit(actions: SheetActions) {
       }
     };
 
-    // 남은 제안이 없으면 검토를 끝내고 이번 검토의 결과를 한 줄로 남긴다
-    const closeIfDone = () => {
-      const { edits, applied, discarded } = state();
-      if (edits.length) return;
-      const parts = [applied && `${applied}개 셀에 적용했어요.`, discarded && `${discarded}개 제안을 버렸어요.`];
-      pushMessage({ role: "notice", text: parts.filter(Boolean).join(" ") });
-      endRun();
-    };
-
-    // 셀 하나 또는 전부를 결정한다. 적용은 transaction 하나 = 실행 취소 한 번 (A5).
-    const decide = (targets: ProposedEdit[], apply: boolean) => {
-      if (!targets.length) return;
-      if (apply) actions.setValues(targets.map(({ addr, after }) => ({ addr, value: after })));
-      useAiStore.setState((s) => ({
-        edits: s.edits.filter((e) => !targets.some((t) => sameCell(t.addr, e.addr))),
-        applied: s.applied + (apply ? targets.length : 0),
-        discarded: s.discarded + (apply ? 0 : targets.length),
-      }));
-      closeIfDone();
-    };
-    const editAt = (addr: CellAddress) => state().edits.filter((e) => sameCell(e.addr, addr));
-
     return {
       send,
       stop: () => controller.current?.abort(),
       retry: () => void send(state().lastInstruction),
-      applyAll: () => decide(state().edits, true),
-      discardAll: () => decide(state().edits, false),
-      applyOne: (addr: CellAddress) => decide(editAt(addr), true),
-      discardOne: (addr: CellAddress) => decide(editAt(addr), false),
+      // 제안 전체를 한 번에 결정한다 (DESIGN.md 13절). 적용은 transaction 하나 = 실행 취소 한 번 (A5).
+      apply: () => {
+        const { edits } = state();
+        actions.setValues(edits.map(({ addr, after }) => ({ addr, value: after })));
+        pushMessage({ role: "notice", text: `${edits.length}개 셀에 적용했어요. ⌘Z로 한 번에 되돌릴 수 있어요.` });
+        endRun();
+      },
+      discard: () => {
+        pushMessage({ role: "notice", text: "제안을 버렸어요." });
+        endRun();
+      },
     };
   }, [actions]);
 }
