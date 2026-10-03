@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { judgeEdit, staleEdits } from "./proposal";
+import { judgeEdit, scopesOverlap, staleEdits } from "./proposal";
 
 const scope = { start: { row: 1, col: 1 }, end: { row: 3, col: 2 } }; // B2:C4
 const values: Record<string, string> = { "1:1": "100" };
@@ -35,3 +35,18 @@ describe("staleEdits", () => {
     expect(staleEdits(edits, read)).toEqual([edits[1]]);
   });
 });
+
+describe("scopesOverlap", () => {
+  const r = (r1: number, c1: number, r2: number, c2: number) => ({ start: { row: r1, col: c1 }, end: { row: r2, col: c2 } });
+  it("한 칸이라도 겹치면 true, 모서리만 닿지 않으면 false", () => {
+    expect(scopesOverlap(r(1, 1, 3, 3), r(3, 3, 5, 5))).toBe(true);
+    expect(scopesOverlap(r(1, 1, 3, 3), r(4, 1, 5, 3))).toBe(false);
+    expect(scopesOverlap(r(1, 1, 3, 3), r(1, 4, 3, 5))).toBe(false);
+  });
+
+  it("시트 전체(null)는 무엇과도 겹친다", () => {
+    expect(scopesOverlap(null, r(9, 9, 9, 9))).toBe(true);
+    expect(scopesOverlap(r(0, 0, 0, 0), null)).toBe(true);
+  });
+});
+

@@ -1,10 +1,11 @@
 "use client";
 
-import { AI_MODELS, toA1, type AiErrorCode, type AiModelId, type AiScope } from "@sheet/core";
+import { AI_MODELS, scopesOverlap, toA1, type AiErrorCode, type AiModelId, type AiScope } from "@sheet/core";
 import { useEffect, useRef, useState, type RefObject } from "react";
 import styled from "styled-components";
 import { useShallow } from "zustand/react/shallow";
 import { resolveScope, type AiCommands } from "@/hooks/useAiEdit";
+import type { Participant } from "@/hooks/usePresence";
 import { useAiStore, type AiMessage } from "@/stores/aiStore";
 import { useSelectionStore } from "@/stores/selectionStore";
 
@@ -22,11 +23,17 @@ const ERRORS: Record<AiErrorCode, { text: string; retry: boolean }> = {
 
 const scopeLabel = (scope: AiScope) => (scope ? `${toA1(scope.start)}:${toA1(scope.end)}` : "시트 전체");
 
-type Props = { open: boolean; ai: AiCommands; staleCount: number; gridInputRef: RefObject<HTMLInputElement | null> };
+type Props = {
+  open: boolean;
+  ai: AiCommands;
+  staleCount: number;
+  others: Participant[]; // 다른 참여자 — 겹치는 AI 작업 경고(X3)
+  gridInputRef: RefObject<HTMLInputElement | null>;
+};
 
 // 닫혀 있어도 마운트를 유지한다 — 닫는 애니메이션을 보이고, 입력 중이던 지시도 남긴다.
 // 닫힌 동안은 inert라 키보드·스크린리더가 들어가지 않는다.
-export function AiPanel({ open, ai, staleCount, gridInputRef }: Props) {
+export function AiPanel({ open, ai, staleCount, others, gridInputRef }: Props) {
   const { status, scope, edits, messages, mock, scopeMode, model } = useAiStore(
     useShallow((s) => ({
       status: s.status,
@@ -43,6 +50,9 @@ export function AiPanel({ open, ai, staleCount, gridInputRef }: Props) {
   const running = status === "reading" || status === "streaming";
   const target = status === "idle" ? resolveScope(scopeMode) : scope;
   const autoIsSheet = scopeMode === "auto" && target === null;
+  // X3: 보내기 전, 내 대상이 다른 사람의 AI 생성·검토 범위와 겹치면 알린다 — 막지는 않는다 (DESIGN.md 15절)
+  const overlapping = status === "idle" ? others.filter((p) => p.ai && scopesOverlap(target, p.ai.area)) : [];
+  const allStale = staleCount > 0 && staleCount === edits.length;
 
   // 새 메시지가 오면 맨 아래로
   const listRef = useRef<HTMLOListElement>(null);
@@ -120,10 +130,16 @@ export function AiPanel({ open, ai, staleCount, gridInputRef }: Props) {
                 위치 보기
               </InlineButton>
             </Summary>
-            {staleCount > 0 && <Warn>{staleCount}개 셀의 원래 값이 검토하는 동안 바뀌었어요.</Warn>}
+            {staleCount > 0 && (
+              <Warn>
+                {allStale
+                  ? "모든 칸의 원래 값이 바뀌었어요. 지금 값으로 다시 요청해 주세요."
+                  : `${staleCount}개 셀의 원래 값이 요청 뒤에 바뀌었어요. 적용할 때 그 칸은 건너뛰어요.`}
+              </Warn>
+            )}
             <Actions>
-              <Button type="button" $primary onClick={() => (ai.apply(), backToGrid())}>
-                {staleCount > 0 ? "그래도 적용" : "적용"}
+              <Button type="button" $primary disabled={allStale} onClick={() => (ai.apply(), backToGrid())}>
+                {staleCount > 0 && !allStale ? `바뀐 ${staleCount}칸 빼고 적용` : "적용"}
               </Button>
               <Button type="button" onClick={() => (ai.discard(), backToGrid())}>
                 버리기
@@ -138,6 +154,14 @@ export function AiPanel({ open, ai, staleCount, gridInputRef }: Props) {
             send();
           }}
         >
+          {overlapping[0] && (
+            <Overlap role="status">
+              {overlapping[0].user.name}님이{" "}
+              {overlapping[0].ai!.area ? `${scopeLabel(overlapping[0].ai!.area)} 범위` : "시트 전체"}를 AI로{" "}
+              {overlapping[0].ai!.state === "generating" ? "만드는" : "검토하는"} 중이에요
+              {overlapping.length > 1 ? ` (외 ${overlapping.length - 1}명)` : ""}. 겹치는 칸은 먼저 적용한 쪽이 반영돼요.
+            </Overlap>
+          )}
           <ScopeRow>
             <span>
               대상: <strong>{scopeLabel(target)}</strong>
@@ -395,6 +419,16 @@ const Composer = styled.form`
   gap: 8px;
   padding: 10px 14px 12px;
   border-top: 1px solid var(--rule);
+`;
+
+const Overlap = styled.p`
+  margin: 0;
+  padding: 6px 8px;
+  border-left: 3px solid var(--marker-edge);
+  background: color-mix(in srgb, var(--marker) 50%, var(--paper));
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.5;
 `;
 
 const ScopeRow = styled.div`

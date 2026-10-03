@@ -1,6 +1,6 @@
 "use client";
 
-import { judgeEdit, sheetContext, type AiScope, type CellAddress, type ProposedEdit } from "@sheet/core";
+import { cellKey, judgeEdit, sheetContext, staleEdits, type AiScope, type CellAddress, type ProposedEdit } from "@sheet/core";
 import { useEffect, useMemo, useRef } from "react";
 import { AbortedByUser, streamAiEdit } from "@/ai/streamAiEdit";
 import { appendAiText, endRun, pushMessage, useAiStore } from "@/stores/aiStore";
@@ -68,7 +68,15 @@ export function useAiEdit(actions: SheetActions) {
       const instruction = input.trim();
       if (!instruction || state().status !== "idle") return;
       const scope = resolveScope(state().scopeMode);
-      const { text: context } = sheetContext(read, scope);
+      // 요청 순간의 값을 컨텍스트를 만들며 함께 기록한다 — AI가 보고 계산한 값이자
+      // X1(원래 값이 바뀜) 판정의 기준 (DESIGN.md 15절). 빈 칸은 기록하지 않으므로 없으면 "".
+      const snapshot = new Map<string, string>();
+      const { text: context } = sheetContext((addr) => {
+        const value = read(addr);
+        if (value !== "") snapshot.set(cellKey(addr), value);
+        return value;
+      }, scope);
+      const readAtSend = (addr: CellAddress) => snapshot.get(cellKey(addr)) ?? "";
       pushMessage({ role: "user", text: instruction });
       useAiStore.setState({ status: "reading", scope, edits: [], excluded: 0, lastInstruction: instruction });
 
@@ -82,7 +90,7 @@ export function useAiEdit(actions: SheetActions) {
             onEvent: (event) => {
               if (event.type === "reply") appendAiText(event.text);
               else if (event.type === "edit") {
-                const verdict = judgeEdit(event.cell, event.value, scope, read);
+                const verdict = judgeEdit(event.cell, event.value, scope, readAtSend);
                 if (verdict.ok) useAiStore.setState((s) => ({ status: "streaming", edits: upsert(s.edits, verdict.edit) }));
                 else if (verdict.reason !== "unchanged") useAiStore.setState((s) => ({ excluded: s.excluded + 1 }));
               } else if (event.type === "done") finish();
@@ -108,10 +116,18 @@ export function useAiEdit(actions: SheetActions) {
       stop: () => controller.current?.abort(),
       retry: () => void send(state().lastInstruction),
       // 제안 전체를 한 번에 결정한다 (DESIGN.md 13절). 적용은 transaction 하나 = 실행 취소 한 번 (A5).
+      // 요청 뒤 원래 값이 바뀐 칸은 건너뛴다 — 사람의 최신 편집이 AI 제안보다 우선 (X1, DESIGN.md 15절).
       apply: () => {
         const { edits } = state();
-        actions.setValues(edits.map(({ addr, after }) => ({ addr, value: after })));
-        pushMessage({ role: "notice", text: `${edits.length}개 셀에 적용했어요. ⌘Z로 한 번에 되돌릴 수 있어요.` });
+        const stale = new Set(staleEdits(edits, read));
+        const fresh = edits.filter((e) => !stale.has(e));
+        if (!fresh.length) {
+          pushMessage({ role: "notice", text: "모든 칸의 원래 값이 바뀌어 적용할 칸이 없어요. 지금 값으로 다시 요청해 주세요." });
+          return;
+        }
+        actions.setValues(fresh.map(({ addr, after }) => ({ addr, value: after })));
+        const skipped = stale.size ? ` 원래 값이 바뀐 ${stale.size}칸은 건너뛰었어요.` : "";
+        pushMessage({ role: "notice", text: `${fresh.length}개 셀에 적용했어요.${skipped} ⌘Z로 한 번에 되돌릴 수 있어요.` });
         endRun();
       },
       discard: () => {

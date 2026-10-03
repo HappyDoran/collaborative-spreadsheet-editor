@@ -136,7 +136,13 @@ function Editor({ actions, awareness, version, canUndo, canRedo, name, color }: 
           commands={commands}
           inputRef={inputRef}
         />
-        <AiPanel open={aiOpen} ai={ai} staleCount={stale.size} gridInputRef={inputRef} />
+        <AiPanel
+          open={aiOpen}
+          ai={ai}
+          staleCount={stale.size}
+          others={participants.filter((p) => !p.isSelf)}
+          gridInputRef={inputRef}
+        />
       </Workspace>
       <StatusBar actions={actions} />
     </>

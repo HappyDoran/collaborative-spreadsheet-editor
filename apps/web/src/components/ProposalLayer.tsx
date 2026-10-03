@@ -14,7 +14,7 @@ export function ProposalLayer({ edits, stale }: { edits: ProposedEdit[]; stale: 
       <Box key={key} data-proposal={key} style={rectOf(single(addr))} $stale={changed}>
         {before && <Before>{before}</Before>}
         <After>{after}</After>
-        {changed && <Flag title="검토하는 동안 원래 값이 바뀌었어요">!</Flag>}
+        {changed && <Flag title="요청 뒤에 원래 값이 바뀌었어요. 적용할 때 이 칸은 건너뛰어요">!</Flag>}
       </Box>
     );
   });

@@ -120,15 +120,17 @@ test("M3-6 실패: 한도 소진은 다시 시도 없음, 형식 오류는 다�
   await expect(page.locator("[data-proposal]")).toHaveCount(0);
 });
 
-test("M3-7 검토 중 원래 값이 바뀌면 표시하고 '그래도 적용'", async ({ context }) => {
+test("M3-7 검토 중 원래 값이 바뀐 칸은 표시하고, 적용할 때 건너뛴다 (X1)", async ({ context }) => {
   const page = await openSheet(context);
   await seed(page);
   await ask(page, "확인 표시");
   await expect(panel(page).getByRole("button", { name: "적용", exact: true })).toBeVisible();
   await typeInto(page, 2, 0, "9999"); // 검토 중 A3를 직접 고침
-  await expect(panel(page)).toContainText("1개 셀의 원래 값이 검토하는 동안 바뀌었어요.");
-  await panel(page).getByRole("button", { name: "그래도 적용" }).click();
-  await expect(cell(page, 2, 0)).toHaveText("2500 ✓");
+  await expect(panel(page)).toContainText("1개 셀의 원래 값이 요청 뒤에 바뀌었어요. 적용할 때 그 칸은 건너뛰어요.");
+  await panel(page).getByRole("button", { name: "바뀐 1칸 빼고 적용" }).click();
+  await expect(cell(page, 1, 0)).toHaveText("1000 ✓");
+  await expect(cell(page, 2, 0)).toHaveText("9999"); // 사람의 최신 편집이 남는다
+  await expect(panel(page)).toContainText("1개 셀에 적용했어요. 원래 값이 바뀐 1칸은 건너뛰었어요.");
 });
 
 test("M3-8 ⌘K로 열고 닫기, Esc는 그리드로", async ({ context }) => {
