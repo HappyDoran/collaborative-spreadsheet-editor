@@ -15,7 +15,7 @@ last_verified: 2026-10-03
 ## 공통 준비
 
 1. `pnpm dev` 실행 후 `http://localhost:3000`을 연다. 배포본을 확인할 때는 배포 주소를 연다.
-2. 깨끗한 상태에서 시작하려면 시트 전체를 선택(⌘A)하고 Delete를 누른다. 저장소까지 비우려면 개발자 도구 → Application → IndexedDB → `sheet:default`를 삭제하고 새로고침한다.
+2. 깨끗한 상태에서 시작하려면 시트 전체를 선택(⌘A)하고 Delete를 누른다. 저장소까지 비우려면 개발자 도구 → Application → IndexedDB → `sheet:v2:default`를 삭제하고 새로고침한다.
 3. 각 시나리오는 앞 시나리오와 독립이다. 필요한 값은 시나리오 안에서 만든다.
 
 ## M1-A 입력과 이동

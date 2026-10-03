@@ -4,7 +4,7 @@ import {
   clearFormats,
   clearValues,
   createUndoManager,
-  getCells,
+  observeCells,
   readCell,
   readGrid,
   setCellValue,
@@ -55,13 +55,12 @@ function subscribeTo(doc: Y.Doc, undo: Y.UndoManager) {
         version++;
         onChange();
       };
-      const cells = getCells(doc);
-      cells.observeDeep(bump);
+      const unobserve = observeCells(doc, bump);
       undo.on("stack-item-added", bump);
       undo.on("stack-item-popped", bump);
       undo.on("stack-cleared", bump);
       return () => {
-        cells.unobserveDeep(bump);
+        unobserve();
         undo.off("stack-item-added", bump);
         undo.off("stack-item-popped", bump);
         undo.off("stack-cleared", bump);

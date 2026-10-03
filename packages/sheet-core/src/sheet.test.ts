@@ -6,7 +6,7 @@ import {
   clearFormats,
   clearValues,
   createUndoManager,
-  getCells,
+  cellMaps,
   readCell,
   readGrid,
   setCellValue,
@@ -16,6 +16,8 @@ import {
 } from "./sheet";
 
 const LOCAL = Symbol("local");
+// 값이나 서식이 남아 있는 칸 수 — 빈 칸의 키가 정리되는지 본다
+const usedCells = (doc: Y.Doc) => new Set(cellMaps(doc).flatMap((m) => [...m.keys()])).size;
 const range = (r1: number, c1: number, r2: number, c2: number) => ({
   start: { row: r1, col: c1 },
   end: { row: r2, col: c2 },
@@ -28,12 +30,12 @@ function connect(a: Y.Doc, b: Y.Doc) {
 }
 
 describe("sheet 연산", () => {
-  it("값을 쓰고 읽는다. 빈 값 + 서식 없음이면 셀 키가 사라진다", () => {
+  it("값을 쓰고 읽는다. 빈 값 + 서식 없음이면 칸의 키가 남지 않는다", () => {
     const doc = new Y.Doc();
     setCellValue(doc, { row: 1, col: 2 }, "42", LOCAL);
     expect(readCell(doc, { row: 1, col: 2 })).toEqual({ value: "42" });
     setCellValue(doc, { row: 1, col: 2 }, "", LOCAL);
-    expect(getCells(doc).size).toBe(0);
+    expect(usedCells(doc)).toBe(0);
   });
 
   it("Delete는 내용만 지우고 서식은 남긴다", () => {
@@ -50,7 +52,7 @@ describe("sheet 연산", () => {
     toggleFormat(doc, range(0, 0, 0, 1), "italic", LOCAL);
     expect(readCell(doc, { row: 0, col: 1 })?.italic).toBe(true);
     toggleFormat(doc, range(0, 0, 0, 1), "italic", LOCAL);
-    expect(getCells(doc).size).toBe(0);
+    expect(usedCells(doc)).toBe(0);
   });
 
   it("붙여넣기: 좌상단부터 쓰고 시트 밖은 버린다", () => {
@@ -58,7 +60,7 @@ describe("sheet 연산", () => {
     const at = { row: SHEET_ROWS - 1, col: SHEET_COLS - 1 };
     const written = writeGrid(doc, { start: at, end: at }, [[{ value: "x" }, { value: "y" }], [{ value: "z" }]], LOCAL);
     expect(written).toEqual({ start: at, end: at });
-    expect(getCells(doc).size).toBe(1);
+    expect(usedCells(doc)).toBe(1);
   });
 
   it("붙여넣기: 값 하나를 범위에 붙이면 범위를 채운다, 서식 포함", () => {
@@ -97,7 +99,7 @@ describe("선택하여 붙여넣기·서식 지우기", () => {
     toggleFormat(doc, range(0, 0, 0, 1), "bold", LOCAL);
     clearFormats(doc, range(0, 0, 0, 1), LOCAL);
     expect(readCell(doc, { row: 0, col: 0 })).toEqual({ value: "값" });
-    expect(getCells(doc).size).toBe(1);
+    expect(usedCells(doc)).toBe(1);
   });
 });
 
@@ -144,6 +146,40 @@ describe("실행 취소", () => {
     expect(readCell(a, { row: 0, col: 0 })).toBeUndefined();
     expect(readCell(a, { row: 0, col: 1 })?.value).toBe("theirs");
     expect(readCell(b, { row: 0, col: 0 })).toBeUndefined();
+  });
+
+  it("빈 칸에 다른 탭이 서식을 넣고 내가 값을 넣은 뒤, 그 탭이 되돌려도 내 값은 남는다", () => {
+    const a = new Y.Doc();
+    const b = new Y.Doc();
+    connect(a, b);
+    const undoB = createUndoManager(b, LOCAL);
+    toggleFormat(b, range(0, 0, 0, 0), "bold", LOCAL);
+    setCellValue(a, { row: 0, col: 0 }, "mine", LOCAL);
+    undoB.undo();
+    expect(readCell(a, { row: 0, col: 0 })).toEqual({ value: "mine" });
+    expect(readCell(b, { row: 0, col: 0 })).toEqual({ value: "mine" });
+  });
+
+  it("빈 칸에 내가 값을 넣고 다른 탭이 서식을 넣은 뒤, 내가 되돌려도 그 서식은 남는다", () => {
+    const a = new Y.Doc();
+    const b = new Y.Doc();
+    connect(a, b);
+    const undoA = createUndoManager(a, LOCAL);
+    setCellValue(a, { row: 0, col: 0 }, "mine", LOCAL);
+    toggleFormat(b, range(0, 0, 0, 0), "bold", LOCAL);
+    undoA.undo();
+    expect(readCell(a, { row: 0, col: 0 })).toEqual({ value: "", bold: true });
+  });
+
+  it("빈 칸에 두 탭이 동시에 값과 서식을 쓰면 둘 다 남는다", () => {
+    const a = new Y.Doc();
+    const b = new Y.Doc();
+    setCellValue(a, { row: 0, col: 0 }, "new", LOCAL);
+    toggleFormat(b, range(0, 0, 0, 0), "bold", LOCAL);
+    Y.applyUpdate(b, Y.encodeStateAsUpdate(a));
+    Y.applyUpdate(a, Y.encodeStateAsUpdate(b));
+    expect(readCell(a, { row: 0, col: 0 })).toEqual({ value: "new", bold: true });
+    expect(readCell(b, { row: 0, col: 0 })).toEqual({ value: "new", bold: true });
   });
 
   it("같은 셀의 값과 서식을 두 탭이 동시에 바꾸면 둘 다 남는다", () => {

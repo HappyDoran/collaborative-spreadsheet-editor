@@ -1,8 +1,9 @@
 import * as Y from "yjs";
 import type { CellAddress, CellRange } from "./address";
 
-// 스키마: doc.getMap("cells") 아래 "행:열" 키마다 Y.Map { value, bold, italic, underline }.
-// 값과 서식을 칸별로 두어 동시 편집이 칸 단위로 병합된다 (DESIGN.md 8절).
+// 스키마: 필드마다 최상위 맵 하나 — doc.getMap("value" | "bold" | "italic" | "underline"), 키는 "행:열".
+// 칸·필드마다 독립된 항목이라, 빈 칸에 두 탭이 동시에 값과 서식을 써도, 한쪽이 되돌려도 다른 필드는 남는다
+// (DESIGN.md 8절). 셀마다 중첩 맵을 만들면 빈 칸을 동시에 만들 때 한쪽 맵이 통째로 사라진다.
 export const SHEET_ROWS = 100;
 export const SHEET_COLS = 26;
 
@@ -10,14 +11,25 @@ export const FORMATS = ["bold", "italic", "underline"] as const;
 export type CellFormat = (typeof FORMATS)[number];
 export type CellData = { value: string } & Partial<Record<CellFormat, boolean>>;
 
-type CellMap = Y.Map<string | boolean>;
+export const CELL_FIELDS = ["value", ...FORMATS] as const;
+type CellField = (typeof CELL_FIELDS)[number];
+
+const fieldMap = (doc: Y.Doc, field: CellField) => doc.getMap<string | boolean>(field);
+
+// 셀 데이터가 든 맵 전부. 실행 취소 범위와 변경 구독이 이것을 쓴다.
+export function cellMaps(doc: Y.Doc): Y.Map<string | boolean>[] {
+  return CELL_FIELDS.map((f) => fieldMap(doc, f));
+}
+
+// 셀 데이터가 바뀌면 fn을 부른다. 구독 해제 함수를 돌려준다.
+export function observeCells(doc: Y.Doc, fn: () => void): () => void {
+  const maps = cellMaps(doc);
+  maps.forEach((m) => m.observe(fn));
+  return () => maps.forEach((m) => m.unobserve(fn));
+}
 
 export function cellKey({ row, col }: CellAddress): string {
   return `${row}:${col}`;
-}
-
-export function getCells(doc: Y.Doc): Y.Map<CellMap> {
-  return doc.getMap<CellMap>("cells");
 }
 
 export function isInsideSheet({ row, col }: CellAddress): boolean {
@@ -30,46 +42,40 @@ export function forEachAddress(range: CellRange, fn: (addr: CellAddress) => void
   }
 }
 
+// 값도 서식도 없는 칸은 undefined.
 export function readCell(doc: Y.Doc, addr: CellAddress): CellData | undefined {
-  const m = getCells(doc).get(cellKey(addr));
-  if (!m) return undefined;
-  const cell: CellData = { value: (m.get("value") as string | undefined) ?? "" };
-  for (const f of FORMATS) if (m.get(f)) cell[f] = true;
-  return cell;
+  const key = cellKey(addr);
+  const value = fieldMap(doc, "value").get(key) as string | undefined;
+  const cell: CellData = { value: value ?? "" };
+  for (const f of FORMATS) if (fieldMap(doc, f).get(key)) cell[f] = true;
+  return value === undefined && !FORMATS.some((f) => cell[f]) ? undefined : cell;
 }
 
-// 빈 값 + 서식 없음이면 셀 맵 자체를 지워 문서가 쓰레기 키로 커지지 않게 한다.
-function patchCell(cells: Y.Map<CellMap>, addr: CellAddress, patch: Partial<CellData>): void {
+// 필드별로 쓴다. 빈 값·꺼진 서식은 키를 지워 문서가 쓰레기 키로 커지지 않게 하고, 같은 값은 다시 쓰지 않는다.
+function patchCell(doc: Y.Doc, addr: CellAddress, patch: Partial<CellData>): void {
   const key = cellKey(addr);
-  let m = cells.get(key);
-  if (!m) {
-    if (!patch.value && !FORMATS.some((f) => patch[f])) return;
-    m = new Y.Map();
-    cells.set(key, m);
-  }
-  for (const [field, v] of Object.entries(patch)) {
+  for (const [field, v] of Object.entries(patch) as [CellField, string | boolean | undefined][]) {
     if (v === undefined) continue;
-    if (v === "" || v === false) m.delete(field);
-    else m.set(field, v);
+    const m = fieldMap(doc, field);
+    if (v === "" || v === false) {
+      if (m.has(key)) m.delete(key);
+    } else if (m.get(key) !== v) m.set(key, v);
   }
-  if (m.size === 0) cells.delete(key);
 }
 
 export function setCellValue(doc: Y.Doc, addr: CellAddress, value: string, origin: unknown): void {
-  doc.transact(() => patchCell(getCells(doc), addr, { value }), origin);
+  doc.transact(() => patchCell(doc, addr, { value }), origin);
 }
 
 // 내용만 지우고 서식은 남긴다 (엑셀 Delete 동작).
 export function clearValues(doc: Y.Doc, range: CellRange, origin: unknown): void {
-  const cells = getCells(doc);
-  doc.transact(() => forEachAddress(range, (addr) => patchCell(cells, addr, { value: "" })), origin);
+  doc.transact(() => forEachAddress(range, (addr) => patchCell(doc, addr, { value: "" })), origin);
 }
 
 // 서식만 지우고 값은 남긴다 (엑셀·시트의 "서식 지우기").
 export function clearFormats(doc: Y.Doc, range: CellRange, origin: unknown): void {
-  const cells = getCells(doc);
   const off = Object.fromEntries(FORMATS.map((f) => [f, false]));
-  doc.transact(() => forEachAddress(range, (addr) => patchCell(cells, addr, off)), origin);
+  doc.transact(() => forEachAddress(range, (addr) => patchCell(doc, addr, off)), origin);
 }
 
 // 범위가 전부 켜져 있으면 끄고, 아니면 전부 켠다 (엑셀 동작).
@@ -78,8 +84,7 @@ export function toggleFormat(doc: Y.Doc, range: CellRange, format: CellFormat, o
   forEachAddress(range, (addr) => {
     if (!readCell(doc, addr)?.[format]) allOn = false;
   });
-  const cells = getCells(doc);
-  doc.transact(() => forEachAddress(range, (addr) => patchCell(cells, addr, { [format]: !allOn })), origin);
+  doc.transact(() => forEachAddress(range, (addr) => patchCell(doc, addr, { [format]: !allOn })), origin);
 }
 
 export function readGrid(doc: Y.Doc, range: CellRange): CellData[][] {
@@ -114,15 +119,14 @@ export function writeGrid(
     col: Math.min(target.start.col + cols - 1, SHEET_COLS - 1),
   };
   const written = { start: target.start, end };
-  const cells = getCells(doc);
   doc.transact(() => {
     forEachAddress(written, (addr) => {
       const src = single ? first : grid[addr.row - target.start.row]?.[addr.col - target.start.col];
       const cell = src ?? { value: "" };
       const formats = { bold: !!cell.bold, italic: !!cell.italic, underline: !!cell.underline };
-      if (mode === "values") patchCell(cells, addr, { value: cell.value });
-      else if (mode === "formats") patchCell(cells, addr, formats);
-      else patchCell(cells, addr, { value: cell.value, ...formats });
+      if (mode === "values") patchCell(doc, addr, { value: cell.value });
+      else if (mode === "formats") patchCell(doc, addr, formats);
+      else patchCell(doc, addr, { value: cell.value, ...formats });
     });
   }, origin);
   return written;
@@ -130,12 +134,11 @@ export function writeGrid(
 
 // 여러 셀의 값을 한 번에 쓴다 (AI 제안 적용). transaction 하나 = 실행 취소 한 단계 (A5). 서식은 건드리지 않는다.
 export function setValues(doc: Y.Doc, entries: { addr: CellAddress; value: string }[], origin: unknown): void {
-  const cells = getCells(doc);
-  doc.transact(() => entries.forEach(({ addr, value }) => patchCell(cells, addr, { value })), origin);
+  doc.transact(() => entries.forEach(({ addr, value }) => patchCell(doc, addr, { value })), origin);
 }
 
 // 내 transaction(origin)만 추적한다 — 원격·영속 계층 update는 되돌리지 않는다 (C7).
 // captureTimeout 0: 연속 입력을 한 단계로 합치지 않는다. 사용자 동작 하나 = undo 한 단계.
 export function createUndoManager(doc: Y.Doc, origin: unknown): Y.UndoManager {
-  return new Y.UndoManager(getCells(doc), { trackedOrigins: new Set([origin]), captureTimeout: 0 });
+  return new Y.UndoManager(cellMaps(doc), { trackedOrigins: new Set([origin]), captureTimeout: 0 });
 }
