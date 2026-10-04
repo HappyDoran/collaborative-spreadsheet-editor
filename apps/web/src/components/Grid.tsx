@@ -1,7 +1,7 @@
 "use client";
 
 import { SHEET_COLS, SHEET_ROWS, colToLabel, inScope, isSingleCell, parseNumber, type CellAddress, type ProposedEdit } from "@sheet/core";
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type RefObject } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type ReactElement, type RefObject } from "react";
 import styled from "styled-components";
 import { useShallow } from "zustand/react/shallow";
 import { guardLineBreaks, type SheetCommands } from "@/hooks/useSheetCommands";
@@ -133,25 +133,28 @@ export function Grid({ actions, version, others, proposals, stale, onOpenAi, com
   // 행 높이도 같이 정한다 — 그 행에서 줄이 가장 많은 칸에 맞춘다.
   const { cells, rowTemplate } = useMemo(() => {
     void version;
-    const out = [];
+    const out: ReactElement[] = [];
     const heights = [ROW_H];
     for (let row = 0; row < SHEET_ROWS; row++) {
+      const line = Array.from({ length: SHEET_COLS }, (_, col) => actions.read({ row, col }));
+      const values = line.map((cell) => cell?.value ?? "");
       let lines = 1;
-      for (let col = 0; col < SHEET_COLS; col++) {
-        const cell = actions.read({ row, col });
-        if (cell?.value) lines = Math.max(lines, lineCount(cell.value));
+      line.forEach((cell, col) => {
+        const value = values[col]!;
+        if (value) lines = Math.max(lines, lineCount(value));
         out.push(
           <Cell
             key={`${row}:${col}`}
             row={row}
             col={col}
-            value={cell?.value ?? ""}
+            value={value}
+            room={overflowRoom(values, col)}
             bold={!!cell?.bold}
             italic={!!cell?.italic}
             underline={!!cell?.underline}
           />,
         );
-      }
+      });
       heights.push(rowHeight(lines));
     }
     return { cells: out, rowTemplate: heights.map((h) => `${h}px`).join(" ") };
@@ -213,6 +216,18 @@ export function Grid({ actions, version, others, proposals, stale, onOpenAi, com
   );
 }
 
+// 편집칸은 엑셀처럼 글이 칸보다 길면 오른쪽 칸들을 덮으며 늘어난다 — 가장 긴 줄의 폭을 재 칸 단위로 맞춘다.
+// ponytail: 시트 오른쪽 끝에서 멈추고 그 뒤는 칸 안에서 스크롤된다. 엑셀처럼 창 끝에서 줄을 바꾸려면 화면 폭을 알아야 한다
+let measure: CanvasRenderingContext2D | null = null;
+function editorWidth(draft: string, col: number, bold: boolean, italic: boolean): number {
+  measure ??= document.createElement("canvas").getContext("2d");
+  if (!measure) return COL_W;
+  measure.font = `${italic ? "italic " : ""}${bold ? 700 : 400} 13px ${getComputedStyle(document.body).fontFamily}`;
+  const text = Math.max(...draft.split("\n").map((line) => measure!.measureText(line).width));
+  const cols = Math.ceil((text + 6 * 2 + 2 * 2 + 4) / COL_W); // 좌우 여백·테두리, 커서 자리
+  return Math.min(Math.max(cols, 1), SHEET_COLS - col) * COL_W;
+}
+
 // 활성 셀 위에 늘 떠 있는 입력칸. 입력 중 글자마다 그리드 전체가 아니라 이 칸만 다시 그린다.
 function ActiveInput({
   actions,
@@ -238,7 +253,12 @@ function ActiveInput({
         ...areaOf(single(active)),
         width: "100%",
         height: "100%",
-        ...(mode !== "idle" && { bottom: "auto", minHeight: "100%", height: rowHeight(lineCount(draft)) }),
+        ...(mode !== "idle" && {
+          bottom: "auto",
+          minHeight: "100%",
+          height: rowHeight(lineCount(draft)),
+          width: editorWidth(draft, active.col, !!cell?.bold, !!cell?.italic),
+        }),
       }}
       $editing={mode !== "idle"}
       $bold={!!cell?.bold}
@@ -260,21 +280,35 @@ function ActiveInput({
   );
 }
 
-type CellProps = { row: number; col: number; value: string; bold: boolean; italic: boolean; underline: boolean };
+// 엑셀처럼 한 줄 글자는 오른쪽 빈 칸 위로 넘쳐 보인다 — 값이 있는 칸을 만나면 거기서 잘린다.
+// 숫자와 여러 줄 값은 넘치지 않는다 (엑셀: 숫자는 넘치지 않고, 셀 안 줄바꿈은 줄 바꿈 서식이 켜진다).
+// 서식만 있는 빈 칸은 빈 칸이다. 돌려주는 값은 그 칸을 포함해 글자가 쓸 수 있는 칸 수.
+function overflowRoom(values: string[], col: number): number {
+  const value = values[col]!;
+  if (!value || value.includes("\n") || parseNumber(value) !== null) return 1;
+  let room = 1;
+  while (col + room < values.length && values[col + room] === "") room++;
+  return room;
+}
 
-// 원시값 props + memo: 문서가 바뀌어도 값·서식이 같은 셀은 다시 그리지 않는다.
-const Cell = memo(function Cell({ row, col, value, bold, italic, underline }: CellProps) {
+type CellProps = { row: number; col: number; value: string; room: number; bold: boolean; italic: boolean; underline: boolean };
+
+// 원시값 props + memo: 문서가 바뀌어도 값·서식·넘칠 자리가 같은 셀은 다시 그리지 않는다.
+const Cell = memo(function Cell({ row, col, value, room, bold, italic, underline }: CellProps) {
+  const overflow = room > 1;
   return (
     <CellBox
       data-row={row}
       data-col={col}
       style={{ gridRow: row + 2, gridColumn: col + 2 }}
       $numeric={parseNumber(value) !== null}
+      $overflow={overflow}
       $bold={bold}
       $italic={italic}
       $underline={underline}
     >
-      {value}
+      {/* 넘친 글자는 옆 칸의 격자선을 종이색으로 가린다(엑셀). 마지막 빈 칸의 오른쪽 선은 남긴다 */}
+      {overflow ? <OverflowText style={{ maxWidth: room * COL_W - 1 }}>{value}</OverflowText> : value}
     </CellBox>
   );
 });
@@ -347,7 +381,7 @@ const formatStyles = (p: FormatProps) => `
 `;
 
 // 셀 안 줄바꿈은 줄을 지킨다. 행보다 줄이 적은 칸은 엑셀처럼 아래에 붙는다.
-const CellBox = styled.div<FormatProps & { $numeric: boolean }>`
+const cellText = `
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -356,10 +390,25 @@ const CellBox = styled.div<FormatProps & { $numeric: boolean }>`
   white-space: pre;
   overflow: hidden;
   text-overflow: clip;
+`;
+
+const CellBox = styled.div<FormatProps & { $numeric: boolean; $overflow: boolean }>`
+  ${cellText}
   text-align: ${(p) => (p.$numeric ? "right" : "left")};
   border-right: 1px solid var(--rule);
   border-bottom: 1px solid var(--rule);
   ${formatStyles}
+  /* 넘치는 칸은 뒤에 그려지는 옆 칸의 격자선보다 위에. 선택·제안·참여자 표시(z-index 1, 뒤 순서)는 그 위 */
+  ${(p) => p.$overflow && "padding: 0; overflow: visible; z-index: 1;"}
+`;
+
+// 옆 칸 위의 글자는 클릭을 아래 칸으로 흘려보낸다 — 옆 칸을 눌러도 그 칸이 선택된다
+const OverflowText = styled.div`
+  ${cellText}
+  height: 100%;
+  width: max-content;
+  background: var(--paper);
+  pointer-events: none;
 `;
 
 const RangeBox = styled.div<{ $multi: boolean }>`

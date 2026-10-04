@@ -56,6 +56,28 @@ test("M1-A14 Alt+Enter는 셀 안 줄바꿈, 행 높이가 줄 수에 맞춰지�
   await expect(page.getByLabel("셀 값")).toHaveValue("줄1\n줄2!");
 });
 
+test("M1-H2·H5 긴 글은 오른쪽 빈 칸으로 넘쳐 보이고, 옆 칸을 채우면 잘린다. 편집칸은 글 길이만큼 늘어난다", async ({ context }) => {
+  const page = await openSheet(context);
+  const long = "오른쪽 빈 칸으로 넘쳐 보이는 긴 글자";
+  await typeInto(page, 0, 0, long);
+  await typeInto(page, 2, 0, "1234567890123456"); // 숫자는 넘치지 않는다
+  const width = async (row: number, col: number) => (await cell(page, row, col).locator("div").first().boundingBox())?.width ?? 0;
+  expect(await width(0, 0)).toBeGreaterThan(150); // 칸 하나(104px)보다 넓게 보인다
+  await expect(cell(page, 2, 0).locator("div")).toHaveCount(0);
+
+  await cell(page, 0, 1).click(); // 넘친 글자 아래의 B1을 누르면 B1이 선택된다
+  await expect(nameBox(page)).toHaveText("B1");
+  await page.keyboard.type("B");
+  await page.keyboard.press("Enter");
+  await expect(cell(page, 0, 0).locator("div")).toHaveCount(0); // B1이 차서 A1 경계에서 잘린다
+  await expect(cell(page, 0, 0)).toHaveText(long);
+
+  await cell(page, 0, 0).dblclick();
+  const input = page.getByLabel("셀 입력");
+  expect((await input.boundingBox())?.width ?? 0).toBeGreaterThan(150); // B1을 덮으며 늘어난다
+  await expect(input).toHaveValue(long);
+});
+
 test("M1-B7 열·행 머리글을 더블클릭해도 편집 모드로 들어가지 않는다", async ({ context }) => {
   const page = await openSheet(context);
   await page.locator('[data-col="2"]:not([data-row])').dblclick();
