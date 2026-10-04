@@ -110,7 +110,7 @@ pnpm start              # http://localhost:3000
 
 어떤 코드에 어떤 테스트가 필요한지는 `.codex/skills/test-policy/SKILL.md`에 정해 두었다.
 
-최종 결과는 core 단위 테스트 51건, Playwright E2E 58건 통과다. E2E로 재현할 수 없는 것(실제 한글 입력기, 엑셀·구글 시트·구글 문서에서 붙여넣기, 오래 가려 둔 탭, 실제 AI 응답, Safari)은 사람이 실제 Safari와 Chrome에서 확인했다. 시나리오와 확인 기록은 `docs/manual-scenarios.md`에 있다.
+최종 결과는 core 단위 테스트 60건, Playwright E2E 65건 통과다. E2E로 재현할 수 없는 것(실제 한글 입력기, 엑셀·구글 시트·구글 문서에서 붙여넣기, 오래 가려 둔 탭, 실제 AI 응답, Safari)은 사람이 실제 Safari와 Chrome에서 확인했다. 시나리오와 확인 기록은 `docs/manual-scenarios.md`에 있다.
 
 ## 개발 방식
 
