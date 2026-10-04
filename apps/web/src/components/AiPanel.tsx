@@ -26,7 +26,7 @@ type Props = {
   ai: AiCommands;
   staleCount: number;
   others: Participant[]; // 다른 참여자 — 겹치는 AI 작업 경고(X3)
-  gridInputRef: RefObject<HTMLInputElement | null>;
+  gridInputRef: RefObject<HTMLTextAreaElement | null>;
 };
 
 // 닫혀 있어도 마운트를 유지한다 — 닫는 애니메이션을 보이고, 입력 중이던 지시도 남긴다.

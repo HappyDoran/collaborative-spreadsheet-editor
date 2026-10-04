@@ -42,6 +42,7 @@ const escapeHTML = (v: string) =>
   v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 // 서식을 inline style로 담은 표. 엑셀·구글 시트도 이 형태를 읽는다.
+// 셀 안 줄바꿈은 <br>로 — HTML 글자의 줄바꿈은 공백으로 합쳐진다. mso-data-placement는 Excel이 같은 칸에 두게 하는 표시.
 export function toHTML(grid: CellData[][]): string {
   const style = (c: CellData) =>
     [c.bold && "font-weight:bold", c.italic && "font-style:italic", c.underline && "text-decoration:underline"]
@@ -49,7 +50,7 @@ export function toHTML(grid: CellData[][]): string {
       .join(";");
   const td = (c: CellData) => {
     const s = style(c);
-    return `<td${s ? ` style="${s}"` : ""}>${escapeHTML(c.value)}</td>`;
+    return `<td${s ? ` style="${s}"` : ""}>${escapeHTML(c.value).replace(/\n/g, '<br style="mso-data-placement:same-cell">')}</td>`;
   };
   return `<table>${grid.map((row) => `<tr>${row.map(td).join("")}</tr>`).join("")}</table>`;
 }

@@ -21,6 +21,12 @@ describe("clipboard", () => {
       '<table><tr><td style="font-weight:bold">&lt;b&gt;</td><td>x</td></tr></table>',
     );
   });
+
+  it("셀 안 줄바꿈은 HTML에서 같은 칸의 <br>로 쓴다", () => {
+    expect(toHTML([[{ value: "줄1\n줄2" }]])).toBe(
+      '<table><tr><td>줄1<br style="mso-data-placement:same-cell">줄2</td></tr></table>',
+    );
+  });
 });
 
 describe("다른 앱의 서식 읽기", () => {

@@ -56,7 +56,7 @@ function Editor({ actions, awareness, version, canUndo, canRedo, name, color }: 
   const participants = useParticipants(awareness);
   const others = participants.filter((p) => !p.isSelf);
   const commands = useSheetCommands(actions);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const { setName, clearName } = useNameStore.getState();
   const ai = useAiEdit(actions);
   const aiOpen = useAiStore((s) => s.open);

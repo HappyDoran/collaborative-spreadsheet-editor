@@ -23,7 +23,7 @@ type Props = {
   stale: Map<string, string>; // 요청 뒤 원래 값이 바뀐 제안의 셀 키 → 지금 값
   onOpenAi: () => void; // 우클릭 메뉴의 "AI로 편집…"
   commands: SheetCommands;
-  inputRef: RefObject<HTMLInputElement | null>;
+  inputRef: RefObject<HTMLTextAreaElement | null>;
 };
 
 export function Grid({ actions, version, others, proposals, stale, onOpenAi, commands, inputRef }: Props) {
@@ -224,7 +224,9 @@ function ActiveInput({
       aria-label="셀 입력"
       spellCheck={false}
       autoComplete="off"
-      style={rectOf(single(active))}
+      wrap="off"
+      // 편집 중에는 줄 수만큼 아래로 펼친다 — 셀 높이는 고정이라 여러 줄 값의 전체는 여기서 보인다
+      style={{ ...rectOf(single(active)), height: mode === "idle" ? ROW_H : draft.split("\n").length * EDIT_LINE_H + 4 }}
       $editing={mode !== "idle"}
       $bold={!!cell?.bold}
       $italic={!!cell?.italic}
@@ -332,10 +334,11 @@ const formatStyles = (p: FormatProps) => `
   text-decoration: ${p.$underline ? "underline" : "none"};
 `;
 
+// 셀 안 줄바꿈은 줄을 지키되 높이가 고정이라 첫 줄만 보인다 (DESIGN.md 9절)
 const CellBox = styled.div<FormatProps & { $numeric: boolean }>`
   padding: 0 6px;
   line-height: ${ROW_H - 1}px;
-  white-space: nowrap;
+  white-space: pre;
   overflow: hidden;
   text-overflow: clip;
   text-align: ${(p) => (p.$numeric ? "right" : "left")};
@@ -361,8 +364,12 @@ const CopyBox = styled.div`
   outline-offset: -2px;
 `;
 
+// 편집칸 한 줄 높이 — 위아래 테두리 2px씩을 뺀 셀 높이
+const EDIT_LINE_H = ROW_H - 4;
+
 // 활성 셀 위에 늘 떠 있는 입력칸. 준비 상태에서는 투명해서 아래 셀 값이 보이고, 입력이 시작되면 셀을 덮는다.
-const CellInput = styled.input<FormatProps & { $editing: boolean }>`
+// 셀 안 줄바꿈을 담으려고 textarea다 — input은 값의 줄바꿈을 지운다.
+const CellInput = styled.textarea<FormatProps & { $editing: boolean }>`
   position: absolute;
   z-index: 2;
   margin: 0;
@@ -370,6 +377,10 @@ const CellInput = styled.input<FormatProps & { $editing: boolean }>`
   border: 2px solid var(--accent);
   outline: none;
   font: inherit;
+  line-height: ${EDIT_LINE_H}px;
+  white-space: pre;
+  overflow: hidden;
+  resize: none;
   ${formatStyles}
   color: ${(p) => (p.$editing ? "var(--ink)" : "transparent")};
   caret-color: ${(p) => (p.$editing ? "var(--accent)" : "transparent")};

@@ -16,7 +16,7 @@ type Props = {
   others: Participant[]; // 다른 참여자 — 겹치는 AI 작업 경고(X3)
   draft: string;
   onDraftChange: (draft: string) => void;
-  gridInputRef: RefObject<HTMLInputElement | null>;
+  gridInputRef: RefObject<HTMLTextAreaElement | null>;
 };
 
 // AI 패널 아래쪽: 겹침 경고, 대상(선택 범위 / 시트 전체), 지시 입력, 모델, 보내기.

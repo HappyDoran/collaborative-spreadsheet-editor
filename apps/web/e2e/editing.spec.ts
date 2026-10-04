@@ -27,6 +27,28 @@ test("M1-A10 숫자 없이 기호만 있는 칸(-)은 글자처럼 왼쪽 정렬
   await expect(cell(page, 1, 0)).toHaveCSS("text-align", "right");
 });
 
+test("M1-A14 Alt+Enter는 셀 안 줄바꿈, 편집해도 줄바꿈이 남는다", async ({ context }) => {
+  const page = await openSheet(context);
+  await cell(page, 0, 0).click();
+  await page.keyboard.type("줄1");
+  await page.keyboard.press("Alt+Enter");
+  await page.keyboard.type("줄2");
+  await page.keyboard.press("Enter");
+  await expect(cell(page, 0, 0)).toHaveText("줄1\n줄2", { useInnerText: false });
+  await expect(nameBox(page)).toHaveText("A2");
+
+  // 편집칸은 줄 수만큼 펼쳐지고, 편집 뒤에도 줄바꿈이 지워지지 않는다 (input이던 때는 지워졌다)
+  await cell(page, 0, 0).click();
+  await page.keyboard.press("F2");
+  expect((await page.getByLabel("셀 입력").boundingBox())?.height).toBe(48);
+  await page.keyboard.type("!");
+  await page.keyboard.press("Enter");
+  await expect(cell(page, 0, 0)).toHaveText("줄1\n줄2!", { useInnerText: false });
+
+  await cell(page, 0, 0).click();
+  await expect(page.getByLabel("셀 값")).toHaveValue("줄1\n줄2!");
+});
+
 test("M1-B7 열·행 머리글을 더블클릭해도 편집 모드로 들어가지 않는다", async ({ context }) => {
   const page = await openSheet(context);
   await page.locator('[data-col="2"]:not([data-row])').dblclick();

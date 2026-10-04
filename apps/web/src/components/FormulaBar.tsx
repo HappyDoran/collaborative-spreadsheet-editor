@@ -12,7 +12,7 @@ import { selectedRange, useSelectionStore } from "@/stores/selectionStore";
 type Props = {
   commands: SheetCommands;
   actions: SheetActions; // 활성 셀 값을 읽는다
-  gridInputRef: RefObject<HTMLInputElement | null>;
+  gridInputRef: RefObject<HTMLTextAreaElement | null>;
 };
 
 // 이름 상자 + 값 편집줄. 편집줄을 누르면 엑셀처럼 편집 모드로 들어가고, 셀 입력칸과 같은 초안을 공유한다.
@@ -32,12 +32,17 @@ export function FormulaBar({ commands, actions, gridInputRef }: Props) {
       <ValueInput
         aria-label="셀 값"
         spellCheck={false}
+        rows={1}
+        wrap="off"
         value={mode === "idle" ? activeValue : draft}
         onFocus={commands.startEditing}
         onChange={(e) => useSelectionStore.getState().setDraft(e.target.value)}
         onKeyDown={(e) => {
           if (e.nativeEvent.isComposing || e.keyCode === 229) return;
-          if (e.key === "Enter" || e.key === "Tab") {
+          if (e.key === "Enter" && e.altKey) {
+            e.preventDefault();
+            commands.insertLineBreak(e.currentTarget);
+          } else if (e.key === "Enter" || e.key === "Tab") {
             e.preventDefault();
             commands.commitAndMove(e.key, e.shiftKey);
             backToGrid();
@@ -88,7 +93,8 @@ const Proposal = styled.span`
   text-overflow: ellipsis;
 `;
 
-const ValueInput = styled.input`
+// 여러 줄 값은 첫 줄만 보인다 — 줄 전체는 셀 편집칸이 펼쳐 보여 준다 (같은 초안)
+const ValueInput = styled.textarea`
   flex: 1;
   min-width: 0;
   padding: 0 10px;
@@ -96,6 +102,10 @@ const ValueInput = styled.input`
   background: transparent;
   color: var(--ink);
   font: inherit;
+  line-height: 30px;
+  white-space: pre;
+  overflow: hidden;
+  resize: none;
 
   &:focus {
     outline: 2px solid var(--accent);

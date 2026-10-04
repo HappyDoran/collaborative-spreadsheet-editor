@@ -42,6 +42,13 @@ export function useSheetCommands(actions: SheetActions) {
       else s.setCopied(null);
     };
 
+    // Alt(⌥)+Enter: 셀 안 줄바꿈 (엑셀). 입력·편집 중에만 — 커서 자리에 넣고 초안을 맞춘다.
+    const insertLineBreak = (el: HTMLTextAreaElement) => {
+      if (state().mode === "idle") return;
+      el.setRangeText("\n", el.selectionStart, el.selectionEnd, "end");
+      state().setDraft(el.value);
+    };
+
     const commitAndMove = (key: "Enter" | "Tab", back: boolean) => {
       commit();
       if (key === "Enter") state().moveAfterEnter(back);
@@ -148,7 +155,7 @@ export function useSheetCommands(actions: SheetActions) {
       actions.clearFormats(selectedRange(state()));
     };
 
-    const onGridKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    const onGridKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
       // 한글 조합 중 키는 IME 몫이다. 조합을 끝낸 뒤의 keydown만 처리한다.
       if (e.nativeEvent.isComposing || e.keyCode === 229) return;
       const s = state();
@@ -171,6 +178,11 @@ export function useSheetCommands(actions: SheetActions) {
         return;
       }
 
+      if (e.key === "Enter" && e.altKey) {
+        e.preventDefault();
+        insertLineBreak(e.currentTarget);
+        return;
+      }
       if (e.key === "Enter" || e.key === "Tab") {
         e.preventDefault();
         commitAndMove(e.key, e.shiftKey);
@@ -212,6 +224,7 @@ export function useSheetCommands(actions: SheetActions) {
       commit,
       cancel,
       commitAndMove,
+      insertLineBreak,
       toggle,
       startEditing,
       copy,
