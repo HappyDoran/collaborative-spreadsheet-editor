@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { expect, test, type Page } from "@playwright/test";
 import { MOD, cell, openSheet, typeInto } from "./sheet";
 
@@ -38,10 +39,14 @@ test("M4-X1 요청 뒤 제안이 도착하기 전에 바뀐 칸도 '원래 값�
   const a = await openSheet(context, "서연");
   const b = await openSheet(context, "준호");
   await seedColumn(a, 10);
-  await ask(a, 1, 10, "확인 표시 #slow"); // A2:A11, 칸마다 0.5초
+  const key = randomUUID().replaceAll("-", "");
+  await ask(a, 1, 10, `확인 표시 #gate=${key}`); // A2:A11 — 마지막 A11의 제안은 풀어 줄 때까지 오지 않는다
   await expect(proposal(a, 1, 0)).toBeVisible();
-  await typeInto(b, 10, 0, "먼저 고침"); // A11의 제안이 오기 전에
-  await expect(panel(a).getByRole("button", { name: "바뀐 1칸 빼고 적용" })).toBeVisible({ timeout: 15_000 });
+  await typeInto(b, 10, 0, "먼저 고침");
+  await expect(cell(a, 10, 0)).toHaveText("먼저 고침"); // A11의 제안이 오기 전에 탭 A에 도착
+  const release = await a.request.post("/api/ai", { data: { instruction: `#release=${key}`, context: "", scope: null, mock: true } });
+  expect(release.ok()).toBe(true);
+  await expect(panel(a).getByRole("button", { name: "바뀐 1칸 빼고 적용" })).toBeVisible();
   await expect(proposal(a, 10, 0)).toContainText("1000 ✓"); // AI는 요청 순간의 1000을 보고 계산했다
 });
 

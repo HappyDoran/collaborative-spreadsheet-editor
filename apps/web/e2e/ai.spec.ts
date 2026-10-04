@@ -111,12 +111,13 @@ test("M3-6 실패: 한도 소진은 다시 시도 없음, 형식 오류는 다�
   const page = await openSheet(context);
   await seed(page);
   await ask(page, "x #quota");
-  await expect(panel(page)).toContainText("지금은 AI를 쓸 수 없어요(사용 한도 도달). 시트 편집은 계속할 수 있어요.");
+  // 실패 응답도 서버를 거친다 — 병렬 부하에서 5초를 넘긴 적이 있어 다른 응답 대기처럼 10초
+  await expect(panel(page)).toContainText("지금은 AI를 쓸 수 없어요(사용 한도 도달). 시트 편집은 계속할 수 있어요.", { timeout: 10_000 });
   await expect(panel(page).getByRole("button", { name: "다시 시도" })).toHaveCount(0);
 
   await panel(page).getByLabel("AI에게 할 일").fill("x #invalid");
   await panel(page).getByLabel("AI에게 할 일").press("Enter");
-  await expect(panel(page)).toContainText("AI 결과를 읽지 못했어요.");
+  await expect(panel(page)).toContainText("AI 결과를 읽지 못했어요.", { timeout: 10_000 });
   await expect(panel(page).getByRole("button", { name: "다시 시도" })).toBeVisible();
   await expect(page.locator("[data-proposal]")).toHaveCount(0);
 });
