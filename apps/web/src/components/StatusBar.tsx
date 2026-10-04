@@ -14,7 +14,7 @@ export function StatusBar({ actions }: { actions: SheetActions }) {
   const { active, extent, mode } = useSelectionStore(
     useShallow((s) => ({ active: s.active, extent: s.extent, mode: s.mode })),
   );
-  const range = selectedRange({ active, extent });
+  const range = selectedRange({ active, extent }, actions.merges());
   const notice = useStatusStore((s) => s.notice);
 
   let count = 0;

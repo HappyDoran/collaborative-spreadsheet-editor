@@ -1,4 +1,4 @@
-import { SHEET_COLS, SHEET_ROWS, normalizeRange, type CellAddress, type CellRange } from "@sheet/core";
+import { SHEET_COLS, SHEET_ROWS, expandToMerges, normalizeRange, stepCell, type CellAddress, type CellRange } from "@sheet/core";
 import { create } from "zustand";
 
 // 엑셀의 세 상태: 준비(idle) · 입력(enter, 타이핑으로 값 교체) · 편집(edit, 기존 값 안에서 커서 이동)
@@ -15,9 +15,10 @@ type SelectionState = {
 
   select: (addr: CellAddress, extend?: boolean) => void;
   selectRange: (active: CellAddress, extent: CellAddress) => void;
-  move: (dRow: number, dCol: number, extend?: boolean) => void;
-  moveAfterTab: (back: boolean) => void;
-  moveAfterEnter: (back: boolean) => void;
+  // 이동은 병합을 한 칸으로 건너뛴다. 병합은 문서(Y.Doc) 상태라 여기 두지 않고 부를 때 받는다.
+  move: (dRow: number, dCol: number, extend: boolean, merges: CellRange[]) => void;
+  moveAfterTab: (back: boolean, merges: CellRange[]) => void;
+  moveAfterEnter: (back: boolean, merges: CellRange[]) => void;
   startEditing: (mode: Exclude<EditMode, "idle">, draft: string, original: string) => void;
   setDraft: (draft: string) => void;
   stopEditing: () => void;
@@ -43,20 +44,20 @@ export const useSelectionStore = create<SelectionState>()((set) => ({
   select: (addr, extend = false) =>
     set(extend ? { extent: clamp(addr) } : { active: clamp(addr), extent: clamp(addr), tabStartCol: null }),
   selectRange: (active, extent) => set({ active: clamp(active), extent: clamp(extent), tabStartCol: null }),
-  move: (dRow, dCol, extend = false) =>
+  move: (dRow, dCol, extend, merges) =>
     set((s) => {
-      if (extend) return { extent: clamp({ row: s.extent.row + dRow, col: s.extent.col + dCol }) };
-      const next = clamp({ row: s.active.row + dRow, col: s.active.col + dCol });
+      if (extend) return { extent: stepCell(s.extent, dRow, dCol, merges) };
+      const next = stepCell(s.active, dRow, dCol, merges);
       return { active: next, extent: next, tabStartCol: null };
     }),
-  moveAfterTab: (back) =>
+  moveAfterTab: (back, merges) =>
     set((s) => {
-      const next = clamp({ row: s.active.row, col: s.active.col + (back ? -1 : 1) });
+      const next = stepCell(s.active, 0, back ? -1 : 1, merges);
       return { active: next, extent: next, tabStartCol: s.tabStartCol ?? s.active.col };
     }),
-  moveAfterEnter: (back) =>
+  moveAfterEnter: (back, merges) =>
     set((s) => {
-      const next = clamp({ row: s.active.row + (back ? -1 : 1), col: s.tabStartCol ?? s.active.col });
+      const next = stepCell({ row: s.active.row, col: s.tabStartCol ?? s.active.col }, back ? -1 : 1, 0, merges);
       return { active: next, extent: next, tabStartCol: null };
     }),
   startEditing: (mode, draft, original) => set({ mode, draft, original, copied: null }),
@@ -65,4 +66,6 @@ export const useSelectionStore = create<SelectionState>()((set) => ({
   setCopied: (copied) => set({ copied }),
 }));
 
-export const selectedRange = (s: Pick<SelectionState, "active" | "extent">): CellRange => normalizeRange(s.active, s.extent);
+// 선택 범위 — 걸친 병합을 모두 품도록 넓힌다 (엑셀: 병합 칸 일부만 고를 수 없다)
+export const selectedRange = (s: Pick<SelectionState, "active" | "extent">, merges: CellRange[]): CellRange =>
+  expandToMerges(normalizeRange(s.active, s.extent), merges);

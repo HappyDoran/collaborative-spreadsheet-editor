@@ -1,5 +1,6 @@
 export * from "./address";
 export * from "./sheet";
+export * from "./merge";
 export * from "./clipboard";
 export * from "./number";
 export * from "./participants";

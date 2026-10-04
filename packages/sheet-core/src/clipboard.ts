@@ -1,3 +1,4 @@
+import type { CellRange } from "./address";
 import type { CellData, CellFormat } from "./sheet";
 
 // 엑셀·구글 시트와 같은 클립보드 형식: 탭으로 열, 줄바꿈으로 행을 나눈다.
@@ -43,16 +44,22 @@ const escapeHTML = (v: string) =>
 
 // 서식을 inline style로 담은 표. 엑셀·구글 시트도 이 형태를 읽는다.
 // 셀 안 줄바꿈은 <br>로 — HTML 글자의 줄바꿈은 공백으로 합쳐진다. mso-data-placement는 Excel이 같은 칸에 두게 하는 표시.
-export function toHTML(grid: CellData[][]): string {
+// 병합(merges, grid 안 좌표)은 colspan·rowspan으로 — 가려진 칸은 td를 쓰지 않는다. 엑셀·구글 시트도 이렇게 담는다.
+export function toHTML(grid: CellData[][], merges: CellRange[] = []): string {
   const style = (c: CellData) =>
     [c.bold && "font-weight:bold", c.italic && "font-style:italic", c.underline && "text-decoration:underline"]
       .filter(Boolean)
       .join(";");
-  const td = (c: CellData) => {
+  const td = (c: CellData, r: number, col: number) => {
+    const m = merges.find((m) => m.start.row <= r && r <= m.end.row && m.start.col <= col && col <= m.end.col);
+    if (m && (m.start.row !== r || m.start.col !== col)) return "";
+    const span = m
+      ? `${m.end.col > m.start.col ? ` colspan="${m.end.col - m.start.col + 1}"` : ""}${m.end.row > m.start.row ? ` rowspan="${m.end.row - m.start.row + 1}"` : ""}`
+      : "";
     const s = style(c);
-    return `<td${s ? ` style="${s}"` : ""}>${escapeHTML(c.value).replace(/\n/g, '<br style="mso-data-placement:same-cell">')}</td>`;
+    return `<td${span}${s ? ` style="${s}"` : ""}>${escapeHTML(c.value).replace(/\n/g, '<br style="mso-data-placement:same-cell">')}</td>`;
   };
-  return `<table>${grid.map((row) => `<tr>${row.map(td).join("")}</tr>`).join("")}</table>`;
+  return `<table>${grid.map((row, r) => `<tr>${row.map((c, col) => td(c, r, col)).join("")}</tr>`).join("")}</table>`;
 }
 
 // 다른 앱이 클립보드 HTML에 담은 서식 읽기 (DESIGN.md 7절 복사·붙여넣기).

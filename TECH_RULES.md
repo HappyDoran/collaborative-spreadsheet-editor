@@ -1,7 +1,7 @@
 ---
 title: 기술 스택과 구현 규칙
 kind: rule
-last_verified: 2026-10-03
+last_verified: 2026-10-04
 ---
 
 # 기술 스택 및 구현 규칙
@@ -33,7 +33,7 @@ last_verified: 2026-10-03
 
 | 상태 | 소유자 | 예 |
 | --- | --- | --- |
-| 공유 + 영속 | `Y.Doc` | 셀 값, 셀 서식 |
+| 공유 + 영속 | `Y.Doc` | 셀 값, 셀 서식, 셀 병합 |
 | 공유 + 일시 (탭이 닫히면 사라짐) | Yjs awareness | 참여자 이름·색, 선택 범위, 편집 중 셀, AI 생성·검토 중 범위(제안 값은 싣지 않음) |
 | 로컬 + 일시 | Zustand store | 내 선택 앵커, 편집 초안, AI 패널 UI, 내 AI 제안의 진행 상태 |
 | 탭 단위 + 새로고침 유지 | Zustand `persist` + `sessionStorage` | 내 참여자 이름·색 (`apps/web/src/stores/identityStore.ts`), 적용 전 AI 제안·대화 (`apps/web/src/stores/aiStore.ts`) |

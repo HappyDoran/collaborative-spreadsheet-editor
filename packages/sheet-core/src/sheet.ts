@@ -16,9 +16,12 @@ type CellField = (typeof CELL_FIELDS)[number];
 
 const fieldMap = (doc: Y.Doc, field: CellField) => doc.getMap<string | boolean>(field);
 
-// 셀 데이터가 든 맵 전부. 실행 취소 범위와 변경 구독이 이것을 쓴다.
+// 셀 병합: 왼쪽 위 칸 키 → 오른쪽 아래 칸 키. 읽기·쓰기는 merge.ts
+export const mergeMap = (doc: Y.Doc) => doc.getMap<string | boolean>("merge");
+
+// 셀 데이터가 든 맵 전부(병합 포함). 실행 취소 범위와 변경 구독이 이것을 쓴다.
 export function cellMaps(doc: Y.Doc): Y.Map<string | boolean>[] {
-  return CELL_FIELDS.map((f) => fieldMap(doc, f));
+  return [...CELL_FIELDS.map((f) => fieldMap(doc, f)), mergeMap(doc)];
 }
 
 // 셀 데이터가 바뀌면 fn을 부른다. 구독 해제 함수를 돌려준다.

@@ -1,7 +1,7 @@
 ---
 title: 현재 폴더 구성 스냅샷
 kind: snapshot
-last_verified: 2026-10-03
+last_verified: 2026-10-04
 ---
 
 # 현재 폴더 구성 스냅샷
@@ -41,7 +41,9 @@ last_verified: 2026-10-03
 │       ├── address.test.ts           # 26진 경계, 잘못된 표기, 역방향 범위
 │       ├── sheet.ts                  # 문서 스키마(필드별 최상위 맵), 값·서식·지우기·서식 지우기·붙여넣기(전부·값만·서식만) 연산, UndoManager 정책
 │       ├── sheet.test.ts             # 빈 셀 정리, 서식 토글, 붙여넣기 채우기·잘림, undo 단위, 두 탭 undo·동시 병합(빈 칸 포함)
-│       ├── clipboard.ts              # TSV 직렬화·파싱(따옴표 규칙), 서식 HTML 표 생성
+│       ├── merge.ts                  # 셀 병합: 읽기(겹침 정리), 병합·해제, 선택 넓히기, 병합을 건너뛰는 이동, 병합째 붙여넣기
+│       ├── merge.test.ts             # 값 지우기·undo 한 단계, 흡수·해제, 두 탭 동시 병합, 잘못된 항목, 이동·선택, 붙여넣기, colspan HTML
+│       ├── clipboard.ts              # TSV 직렬화·파싱(따옴표 규칙), 서식·병합(colspan·rowspan) HTML 표 생성
 │       ├── clipboard.test.ts         # CRLF, 따옴표 안 탭·줄바꿈, HTML 이스케이프
 │       ├── number.ts                 # 셀 글자 → 숫자 (정렬·상태 표시줄 합계 공용)
 │       ├── number.test.ts            # 쉼표·퍼센트·부호, 글자로 볼 표기
@@ -61,7 +63,8 @@ last_verified: 2026-10-03
     ├── e2e/
     │   ├── sheet.ts                  # 공용 조작 (시트 열기·이름 지정·셀·이름 상자·아바타)
     │   ├── warmup.ts                 # globalSetup — 테스트 전 페이지·AI 라우트를 불러 dev 서버 첫 컴파일을 끝냄
-    │   ├── editing.spec.ts           # M1 편집·선택·서식·클립보드(엑셀·시트·문서 HTML)·undo·한글·저장·머리글 12건
+    │   ├── editing.spec.ts           # M1 편집·선택·서식·클립보드(엑셀·시트·문서 HTML)·undo·한글·저장·머리글·긴 글 넘침 15건
+    │   ├── merge.spec.ts             # M1-I 셀 병합: 확인·가운데·undo, 이동·선택·해제, 복사·붙여넣기, 다른 탭·넘침 4건
     │   ├── collaboration.spec.ts     # M2 탭별 이름·새로고침 유지·합류·실시간·동시 편집·목록·원격 표시·탭 종료·undo 범위·놓친 변경 따라잡기·가려진 탭 깜박임·편집 중 원격 변경·새 탭 링크 13건
     │   ├── collabAi.spec.ts          # M4 두 탭 × AI: 바뀐 칸 건너뛰기·요청 순간 기준·전부 바뀜·겹침 경고 5건
     │   ├── contextMenu.spec.ts       # M3.5 우클릭 메뉴 10건

@@ -1,6 +1,6 @@
 "use client";
 
-import { SHEET_COLS, SHEET_ROWS, colToLabel, inScope, isSingleCell, parseNumber, type CellAddress, type ProposedEdit } from "@sheet/core";
+import { SHEET_COLS, SHEET_ROWS, anchorOf, colToLabel, inScope, isOneCell, mergeAt, parseNumber, type CellAddress, type CellRange, type ProposedEdit } from "@sheet/core";
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type ReactElement, type RefObject } from "react";
 import styled from "styled-components";
 import { useShallow } from "zustand/react/shallow";
@@ -31,7 +31,8 @@ export function Grid({ actions, version, others, proposals, stale, onOpenAi, com
     useShallow((s) => ({ active: s.active, extent: s.extent, copied: s.copied })),
   );
   const { select, selectRange } = useSelectionStore.getState();
-  const range = selectedRange({ active, extent });
+  const merges = actions.merges();
+  const range = selectedRange({ active, extent }, merges);
   const dragging = useRef(false);
   const proposedRows = new Set(proposals.map((p) => p.addr.row));
   const proposedCols = new Set(proposals.map((p) => p.addr.col));
@@ -105,7 +106,8 @@ export function Grid({ actions, version, others, proposals, stale, onOpenAi, com
     setMenu({ x: e.clientX, y: e.clientY });
   };
 
-  const activeCell = actions.read(active);
+  const activeCell = actions.read(anchorOf(merges, active));
+  const inMerge = merges.some((m) => inScope(m.start, range));
   const menuItems: MenuItem[] = [
     { label: "잘라내기", hint: shortcut("X"), onSelect: () => void commands.copyFromMenu(true) },
     { label: "복사", hint: shortcut("C"), onSelect: () => void commands.copyFromMenu(false) },
@@ -117,6 +119,7 @@ export function Grid({ actions, version, others, proposals, stale, onOpenAi, com
     { label: "굵게", hint: shortcut("B"), checked: !!activeCell?.bold, separatorBefore: true, onSelect: () => commands.toggle("bold") },
     { label: "기울임", hint: shortcut("I"), checked: !!activeCell?.italic, onSelect: () => commands.toggle("italic") },
     { label: "밑줄", hint: shortcut("U"), checked: !!activeCell?.underline, onSelect: () => commands.toggle("underline") },
+    { label: inMerge ? "병합 해제" : "병합하고 가운데 맞춤", separatorBefore: true, onSelect: commands.toggleMerge },
     { label: "AI로 편집…", hint: shortcut("K"), separatorBefore: true, onSelect: onOpenAi },
   ];
 
@@ -131,24 +134,32 @@ export function Grid({ actions, version, others, proposals, stale, onOpenAi, com
   // Y.Doc은 바뀌어도 참조가 같아 의존성으로 쓸 수 없다 — 문서 변경마다 오르는 version을 대신 의존성에 둔다
   // (본문에서 쓰지 않으면 린트가 불필요한 의존성으로 보아 void로 읽는다).
   // 행 높이도 같이 정한다 — 그 행에서 줄이 가장 많은 칸에 맞춘다.
+  // 병합 칸은 왼쪽 위 칸 하나가 병합 영역 전체를 차지하고, 가려진 칸은 그리지 않는다 — 클릭은 늘 왼쪽 위로 간다.
   const { cells, rowTemplate } = useMemo(() => {
     void version;
+    const merged = actions.merges();
     const out: ReactElement[] = [];
     const heights = [ROW_H];
     for (let row = 0; row < SHEET_ROWS; row++) {
       const line = Array.from({ length: SHEET_COLS }, (_, col) => actions.read({ row, col }));
-      const values = line.map((cell) => cell?.value ?? "");
+      const spans = Array.from({ length: SHEET_COLS }, (_, col) => mergeAt(merged, { row, col }));
+      // 넘침은 빈 칸이면서 병합에 들지 않은 칸으로만 — 병합 칸은 넘치지도, 넘친 글을 받지도 않는다
+      const values = line.map((cell, col) => (spans[col] ? "\u0000" : (cell?.value ?? "")));
       let lines = 1;
       line.forEach((cell, col) => {
-        const value = values[col]!;
-        if (value) lines = Math.max(lines, lineCount(value));
+        const span = spans[col];
+        if (span && (span.start.row !== row || span.start.col !== col)) return;
+        const value = cell?.value ?? "";
+        // 여러 행에 걸친 병합은 행 높이를 정하지 않는다 (엑셀도 병합 칸은 행 높이 자동 맞춤에서 빠진다)
+        if (value && (!span || span.end.row === row)) lines = Math.max(lines, lineCount(value));
         out.push(
           <Cell
             key={`${row}:${col}`}
             row={row}
             col={col}
+            span={span}
             value={value}
-            room={overflowRoom(values, col)}
+            room={span ? 1 : overflowRoom(values, col)}
             bold={!!cell?.bold}
             italic={!!cell?.italic}
             underline={!!cell?.underline}
@@ -201,15 +212,22 @@ export function Grid({ actions, version, others, proposals, stale, onOpenAi, com
         ))}
         {cells}
 
-        <ProposalLayer edits={proposals} stale={stale} />
-        <RemoteCursors others={others} />
+        <ProposalLayer edits={proposals} stale={stale} merges={merges} />
+        <RemoteCursors others={others} merges={merges} />
         {/* 제안이 있는 동안은 선택 배경을 칠하지 않는다 — 형광펜과 섞여 탁해지지 않게 */}
         <RangeBox
           style={areaOf(range)}
-          $multi={proposals.length === 0 && !isSingleCell(range)}
+          $multi={proposals.length === 0 && !isOneCell(range, merges)}
         />
         {copied && <CopyBox style={areaOf(copied)} />}
-        <ActiveInput actions={actions} commands={commands} inputRef={inputRef} active={active} onOpenMenu={openMenuAtCell} />
+        <ActiveInput
+          actions={actions}
+          commands={commands}
+          inputRef={inputRef}
+          active={anchorOf(merges, active)}
+          area={mergeAt(merges, active) ?? single(active)}
+          onOpenMenu={openMenuAtCell}
+        />
       </Canvas>
       {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems} onClose={closeMenu} />}
     </Scroller>
@@ -234,8 +252,9 @@ function ActiveInput({
   commands,
   inputRef,
   active,
+  area,
   onOpenMenu,
-}: Pick<Props, "actions" | "commands" | "inputRef"> & { active: CellAddress; onOpenMenu: () => void }) {
+}: Pick<Props, "actions" | "commands" | "inputRef"> & { active: CellAddress; area: CellRange; onOpenMenu: () => void }) {
   const { mode, draft } = useSelectionStore(useShallow((s) => ({ mode: s.mode, draft: s.draft })));
   const cell = actions.read(active);
   useEffect(() => guardLineBreaks(inputRef.current), [inputRef]);
@@ -250,14 +269,14 @@ function ActiveInput({
       // textarea는 inset만으로 늘어나지 않아 크기를 직접 준다. 편집 중에는 초안의 줄 수만큼 아래로 펼친다
       // — 확정 전이라 행 높이는 아직 그대로다.
       style={{
-        ...areaOf(single(active)),
+        ...areaOf(area),
         width: "100%",
         height: "100%",
         ...(mode !== "idle" && {
           bottom: "auto",
           minHeight: "100%",
           height: rowHeight(lineCount(draft)),
-          width: editorWidth(draft, active.col, !!cell?.bold, !!cell?.italic),
+          width: Math.max(editorWidth(draft, active.col, !!cell?.bold, !!cell?.italic), (area.end.col - area.start.col + 1) * COL_W),
         }),
       }}
       $editing={mode !== "idle"}
@@ -291,16 +310,27 @@ function overflowRoom(values: string[], col: number): number {
   return room;
 }
 
-type CellProps = { row: number; col: number; value: string; room: number; bold: boolean; italic: boolean; underline: boolean };
+type CellProps = {
+  row: number;
+  col: number;
+  span: CellRange | undefined; // 병합의 왼쪽 위 칸이면 병합 영역
+  value: string;
+  room: number;
+  bold: boolean;
+  italic: boolean;
+  underline: boolean;
+};
 
 // 원시값 props + memo: 문서가 바뀌어도 값·서식·넘칠 자리가 같은 셀은 다시 그리지 않는다.
-const Cell = memo(function Cell({ row, col, value, room, bold, italic, underline }: CellProps) {
+// 병합 영역은 읽을 때마다 새 객체라 memo 비교가 실패한다 — 병합 칸 수만큼만 다시 그려 문제 되지 않는다.
+const Cell = memo(function Cell({ row, col, span, value, room, bold, italic, underline }: CellProps) {
   const overflow = room > 1;
   return (
     <CellBox
       data-row={row}
       data-col={col}
-      style={{ gridRow: row + 2, gridColumn: col + 2 }}
+      style={span ? areaOf(span) : { gridRow: row + 2, gridColumn: col + 2 }}
+      $merged={!!span}
       $numeric={parseNumber(value) !== null}
       $overflow={overflow}
       $bold={bold}
@@ -392,9 +422,11 @@ const cellText = `
   text-overflow: clip;
 `;
 
-const CellBox = styled.div<FormatProps & { $numeric: boolean; $overflow: boolean }>`
+// 병합 칸은 엑셀의 "병합하고 가운데 맞춤"처럼 가운데 (사람 결정). 배경을 칠해 아래 격자선을 가린다.
+const CellBox = styled.div<FormatProps & { $numeric: boolean; $overflow: boolean; $merged: boolean }>`
   ${cellText}
-  text-align: ${(p) => (p.$numeric ? "right" : "left")};
+  text-align: ${(p) => (p.$merged ? "center" : p.$numeric ? "right" : "left")};
+  ${(p) => p.$merged && "background: var(--paper);"}
   border-right: 1px solid var(--rule);
   border-bottom: 1px solid var(--rule);
   ${formatStyles}

@@ -1,13 +1,14 @@
 "use client";
 
-import { isSingleCell, normalizeRange } from "@sheet/core";
+import { expandToMerges, isOneCell, mergeAt, normalizeRange, type CellRange } from "@sheet/core";
 import styled from "styled-components";
 import type { Participant } from "@/hooks/usePresence";
 import { areaOf, single } from "./gridGeometry";
 
 // 다른 참여자의 선택 범위·셀 포인터·편집 중 셀 (C5). 내 포인터와 같은 문법(테두리)을 각자 색으로 쓴다.
 // AI 생성·검토 중인 범위는 그 사람 색 점선과 이름표로만 보인다 — 제안 값은 보이지 않는다 (DESIGN.md 13절 D안).
-export function RemoteCursors({ others }: { others: Participant[] }) {
+// 병합은 같은 문서라 내 탭의 병합으로 상대 선택을 넓혀 그린다 — 상대 화면과 같은 모양이 된다.
+export function RemoteCursors({ others, merges }: { others: Participant[]; merges: CellRange[] }) {
   return others.map(({ clientId, cursor, user, ai }) => {
     if (!cursor) return null;
     const style = { "--who": user.color } as React.CSSProperties;
@@ -26,11 +27,11 @@ export function RemoteCursors({ others }: { others: Participant[] }) {
       );
     }
 
-    const range = normalizeRange(cursor.active, cursor.extent);
+    const range = expandToMerges(normalizeRange(cursor.active, cursor.extent), merges);
     return (
       <Layer key={clientId} style={style}>
-        {!isSingleCell(range) && <Range style={areaOf(range)} />}
-        <Pointer style={areaOf(single(cursor.active))} $editing={cursor.editing}>
+        {!isOneCell(range, merges) && <Range style={areaOf(range)} />}
+        <Pointer style={areaOf(mergeAt(merges, cursor.active) ?? single(cursor.active))} $editing={cursor.editing}>
           <Tag $below={cursor.active.row === 0}>{cursor.editing ? `${user.name} · 입력 중` : user.name}</Tag>
         </Pointer>
       </Layer>

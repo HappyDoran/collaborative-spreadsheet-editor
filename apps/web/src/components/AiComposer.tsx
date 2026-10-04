@@ -4,7 +4,7 @@ import { AI_MODELS, scopesOverlap, toA1, type AiModelId, type AiScope } from "@s
 import type { RefObject } from "react";
 import styled from "styled-components";
 import { useShallow } from "zustand/react/shallow";
-import { resolveScope, type AiCommands } from "@/hooks/useAiEdit";
+import type { AiCommands } from "@/hooks/useAiEdit";
 import type { Participant } from "@/hooks/usePresence";
 import { useAiStore } from "@/stores/aiStore";
 import { useSelectionStore } from "@/stores/selectionStore";
@@ -25,7 +25,7 @@ export function AiComposer({ ai, others, draft, onDraftChange: setDraft, gridInp
     useShallow((s) => ({ status: s.status, scope: s.scope, scopeMode: s.scopeMode, model: s.model })),
   );
   useSelectionStore(useShallow((s) => [s.active, s.extent])); // 대기 중 대상 표시가 선택을 따라가게
-  const target = status === "idle" ? resolveScope(scopeMode) : scope;
+  const target = status === "idle" ? ai.target(scopeMode) : scope;
   const autoIsSheet = scopeMode === "auto" && target === null;
   // X3: 보내기 전, 내 대상이 다른 사람의 AI 생성·검토 범위와 겹치면 알린다 — 막지는 않는다 (DESIGN.md 15절)
   const overlapping = status === "idle" ? others.filter((p) => p.ai && scopesOverlap(target, p.ai.area)) : [];

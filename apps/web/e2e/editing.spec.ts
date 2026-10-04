@@ -242,7 +242,7 @@ test("M1-D7 Excel의 클래스 규칙 서식, 구글 시트의 글자 조각 서
 });
 
 
-test("M1-D10 셀 안 줄바꿈과 병합 칸을 살리고, 구글 문서의 굵지 않은 글은 굵게 바꾸지 않는다", async ({ context }) => {
+test("M1-D10·I5 셀 안 줄바꿈과 병합을 살리고, 구글 문서의 굵지 않은 글은 굵게 바꾸지 않는다", async ({ context }) => {
   const page = await openSheet(context);
   // 시트·엑셀은 셀 안 줄바꿈을 HTML에선 <br>, 텍스트에선 따옴표로 담는다. 병합 칸은 colspan, 텍스트에선 빈 칸.
   await cell(page, 0, 0).click();
@@ -253,7 +253,8 @@ test("M1-D10 셀 안 줄바꿈과 병합 칸을 살리고, 구글 문서의 굵�
   );
   await expect(cell(page, 0, 2)).toHaveText("굵게");
   await expect(cell(page, 0, 2)).toHaveCSS("font-weight", "700");
-  await expect(cell(page, 0, 1)).toHaveText("");
+  await expect(cell(page, 0, 1)).toHaveCount(0); // A1:B1 병합 — 가려진 B1은 그리지 않는다
+  expect((await cell(page, 0, 0).boundingBox())?.width).toBeGreaterThan(200);
   await expect(cell(page, 1, 0)).toHaveText(/^줄1\n줄2$/, { useInnerText: false });
   await expect(cell(page, 1, 1)).toHaveText("b");
 

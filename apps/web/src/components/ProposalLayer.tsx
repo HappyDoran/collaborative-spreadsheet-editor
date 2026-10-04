@@ -1,26 +1,28 @@
 "use client";
 
-import { cellKey, type ProposedEdit } from "@sheet/core";
+import { cellKey, mergeAt, type CellRange, type ProposedEdit } from "@sheet/core";
 import styled from "styled-components";
 import { areaOf, single } from "./gridGeometry";
 
 // AI 제안 미리보기 — 형광펜 칸 위에 원래 값(취소선)과 제안 값 (DESIGN.md 13절).
 // 형광펜은 참여자 10색에 없는 표시라 사람의 선택(실선)·복사/입력 중(점선)과 섞이지 않는다.
 // 요청 뒤 원래 값이 바뀐 칸(stale: 셀 키 → 지금 값)은 지금 값을 보이고 제안은 흐리게 — 적용할 때 건너뛴다 (X1).
-export function ProposalLayer({ edits, stale }: { edits: ProposedEdit[]; stale: Map<string, string> }) {
+// 병합 칸의 제안은 병합 영역 전체에 그린다
+export function ProposalLayer({ edits, stale, merges }: { edits: ProposedEdit[]; stale: Map<string, string>; merges: CellRange[] }) {
   return edits.map(({ addr, before, after }) => {
     const key = cellKey(addr);
+    const area = mergeAt(merges, addr) ?? single(addr);
     const now = stale.get(key);
     if (now !== undefined) {
       return (
-        <Box key={key} data-proposal={key} style={areaOf(single(addr))} $stale>
+        <Box key={key} data-proposal={key} style={areaOf(area)} $stale>
           <Now>지금 {now || "빈 칸"} · 건너뜀</Now>
           <After $skipped>{after}</After>
         </Box>
       );
     }
     return (
-      <Box key={key} data-proposal={key} style={areaOf(single(addr))} $stale={false}>
+      <Box key={key} data-proposal={key} style={areaOf(area)} $stale={false}>
         {before && <Before>{before}</Before>}
         <After>{after}</After>
       </Box>

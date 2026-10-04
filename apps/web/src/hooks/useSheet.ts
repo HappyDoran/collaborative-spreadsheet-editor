@@ -4,13 +4,17 @@ import {
   clearFormats,
   clearValues,
   createUndoManager,
+  mergeCells,
+  mergeLosesValues,
   observeCells,
+  pasteGrid,
+  readMerges,
+  unmergeCells,
   readCell,
   readGrid,
   setCellValue,
   setValues,
   toggleFormat,
-  writeGrid,
   type CellAddress,
   type CellData,
   type CellFormat,
@@ -30,7 +34,11 @@ export type SheetActions = {
   clear: (range: CellRange) => void;
   clearFormats: (range: CellRange) => void;
   toggleFormat: (range: CellRange, format: CellFormat) => void;
-  paste: (target: CellRange, grid: CellData[][], mode?: PasteMode) => CellRange | null;
+  paste: (target: CellRange, grid: CellData[][], merges: CellRange[], mode?: PasteMode) => CellRange | null;
+  merges: () => CellRange[]; // 겹침을 정리한 병합 목록 (core readMerges)
+  merge: (range: CellRange) => void;
+  unmerge: (range: CellRange) => void;
+  mergeLosesValues: (range: CellRange) => boolean;
   setValues: (entries: { addr: CellAddress; value: string }[]) => void;
   undo: () => void;
   redo: () => void;
@@ -103,7 +111,11 @@ export function useSheet(sheetId: string): SheetState {
       clear: (range) => clearValues(doc, range, origin),
       clearFormats: (range) => clearFormats(doc, range, origin),
       toggleFormat: (range, format) => toggleFormat(doc, range, format, origin),
-      paste: (target, grid, mode) => writeGrid(doc, target, grid, origin, mode),
+      paste: (target, grid, merges, mode) => pasteGrid(doc, target, grid, merges, origin, mode),
+      merges: () => readMerges(doc),
+      merge: (range) => mergeCells(doc, range, origin),
+      unmerge: (range) => unmergeCells(doc, range, origin),
+      mergeLosesValues: (range) => mergeLosesValues(doc, range),
       // AI 적용: 실행 취소 단계에 이름을 붙여 되돌릴 때 무엇을 되돌렸는지 알린다 (captureTimeout 0 — 방금 쓴 단계가 마지막)
       setValues: (entries) => {
         setValues(doc, entries, origin);

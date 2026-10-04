@@ -1,6 +1,6 @@
 "use client";
 
-import { isSingleCell, toA1 } from "@sheet/core";
+import { anchorOf, isOneCell, toA1 } from "@sheet/core";
 import type { RefObject } from "react";
 import styled from "styled-components";
 import { useShallow } from "zustand/react/shallow";
@@ -20,15 +20,17 @@ export function FormulaBar({ commands, actions, gridInputRef }: Props) {
   const { active, extent, mode, draft } = useSelectionStore(
     useShallow((s) => ({ active: s.active, extent: s.extent, mode: s.mode, draft: s.draft })),
   );
-  const activeValue = actions.read(active)?.value ?? "";
+  const merges = actions.merges();
+  const cell = anchorOf(merges, active); // 병합 칸이면 왼쪽 위
+  const activeValue = actions.read(cell)?.value ?? "";
   // 활성 셀에 대한 AI 제안 (검토 중)
-  const proposal = useAiStore((s) => s.edits.find((e) => e.addr.row === active.row && e.addr.col === active.col));
-  const range = selectedRange({ active, extent });
+  const proposal = useAiStore((s) => s.edits.find((e) => e.addr.row === cell.row && e.addr.col === cell.col));
+  const range = selectedRange({ active, extent }, merges);
   const backToGrid = () => gridInputRef.current?.focus();
 
   return (
     <Bar>
-      <NameBox aria-label="선택한 셀">{isSingleCell(range) ? toA1(active) : `${toA1(range.start)}:${toA1(range.end)}`}</NameBox>
+      <NameBox aria-label="선택한 셀">{isOneCell(range, merges) ? toA1(cell) : `${toA1(range.start)}:${toA1(range.end)}`}</NameBox>
       <ValueInput
         ref={guardLineBreaks}
         aria-label="셀 값"

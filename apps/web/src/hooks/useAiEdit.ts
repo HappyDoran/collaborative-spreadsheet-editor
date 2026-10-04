@@ -1,6 +1,6 @@
 "use client";
 
-import { cellKey, isSingleCell, judgeEdit, sheetContext, staleEdits, type AiScope, type CellAddress, type ProposedEdit } from "@sheet/core";
+import { cellKey, isCovered, isOneCell, judgeEdit, sheetContext, staleEdits, type AiScope, type CellAddress, type CellRange, type ProposedEdit } from "@sheet/core";
 import { useEffect, useMemo, useRef } from "react";
 import { AbortedByUser, streamAiEdit } from "@/ai/streamAiEdit";
 import { appendAiText, endRun, pushMessage, useAiStore } from "@/stores/aiStore";
@@ -8,9 +8,10 @@ import { selectedRange, useSelectionStore } from "@/stores/selectionStore";
 import type { SheetActions } from "./useSheet";
 
 // 지금 선택과 대상 설정으로 AI 대상 범위를 정한다. auto: 여러 칸이면 그 범위, 한 칸이면 시트 전체.
-export function resolveScope(mode: "auto" | "selection" | "sheet"): AiScope {
-  const range = selectedRange(useSelectionStore.getState());
-  if (mode === "sheet" || (mode === "auto" && isSingleCell(range))) return null;
+// 병합 칸 하나만 골랐으면 한 칸으로 본다.
+export function resolveScope(mode: "auto" | "selection" | "sheet", merges: CellRange[]): AiScope {
+  const range = selectedRange(useSelectionStore.getState(), merges);
+  if (mode === "sheet" || (mode === "auto" && isOneCell(range, merges))) return null;
   return range;
 }
 
@@ -64,7 +65,7 @@ export function useAiEdit(actions: SheetActions) {
     };
 
     // scope를 주면(다시 시도) 그 범위로, 아니면 지금 선택으로 정한다
-    const send = async (input: string, scope = resolveScope(state().scopeMode)) => {
+    const send = async (input: string, scope = resolveScope(state().scopeMode, actions.merges())) => {
       const instruction = input.trim();
       if (!instruction || state().status !== "idle") return;
       // 요청 순간의 값을 컨텍스트를 만들며 함께 기록한다 — AI가 보고 계산한 값이자
@@ -94,7 +95,10 @@ export function useAiEdit(actions: SheetActions) {
               if (event.type === "reply") appendAiText(event.text);
               else if (event.type === "edit") {
                 const verdict = judgeEdit(event.cell, event.value, scope, readAtSend);
-                if (verdict.ok) useAiStore.setState((s) => ({ status: "streaming", edits: upsert(s.edits, verdict.edit) }));
+                // 병합에 가려진 칸은 보이지 않으므로 대상 밖처럼 뺀다
+                if (verdict.ok && !isCovered(actions.merges(), verdict.edit.addr)) {
+                  useAiStore.setState((s) => ({ status: "streaming", edits: upsert(s.edits, verdict.edit) }));
+                } else if (verdict.ok) useAiStore.setState((s) => ({ excluded: s.excluded + 1 }));
                 else if (verdict.reason !== "unchanged") useAiStore.setState((s) => ({ excluded: s.excluded + 1 }));
               } else if (event.type === "done") finish();
               else if (!leaving.current) {
@@ -119,6 +123,7 @@ export function useAiEdit(actions: SheetActions) {
 
     return {
       send,
+      target: (mode: "auto" | "selection" | "sheet") => resolveScope(mode, actions.merges()),
       stop: () => controller.current?.abort(),
       // 실패한 요청과 같은 범위로 — 그 사이 선택을 옮겨도 대상이 바뀌지 않는다
       retry: () => void send(state().lastInstruction, state().lastScope),

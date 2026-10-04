@@ -81,6 +81,7 @@ test("M3.5-5 Shift+F10으로 열고 방향키로 고르고 Enter로 실행", asy
   await expect(menu(page)).toBeVisible();
   await expect(menuItem(page, "잘라내기")).toBeFocused();
   await page.keyboard.press("End"); // AI로 편집…
+  await page.keyboard.press("ArrowUp"); // 병합하고 가운데 맞춤
   await page.keyboard.press("ArrowUp"); // 밑줄
   await page.keyboard.press("Enter");
   await expect(cell(page, 0, 0)).toHaveCSS("text-decoration-line", "underline");
