@@ -124,6 +124,23 @@ describe("셀 병합", () => {
     expect(readMerges(doc)).toEqual([range(5, 0, 5, 1)]);
   });
 
+  it("값 하나를 병합 칸에 붙이면 병합은 남고 왼쪽 위에만 들어간다. 값만 붙여넣기는 가려진 칸에 쓰지 않는다", () => {
+    const doc = new Y.Doc();
+    const undo = createUndoManager(doc, LOCAL);
+    mergeCells(doc, range(0, 1, 0, 2), LOCAL);
+    pasteGrid(doc, range(0, 1, 0, 2), [[{ value: "하나" }]], [], LOCAL);
+    expect(readMerges(doc)).toEqual([range(0, 1, 0, 2)]);
+    expect(readCell(doc, at(0, 1))?.value).toBe("하나");
+    expect(readCell(doc, at(0, 2))?.value ?? "").toBe("");
+    undo.undo(); // 한 단계
+    expect(readCell(doc, at(0, 1))?.value ?? "").toBe("");
+
+    pasteGrid(doc, range(0, 1, 0, 2), [[{ value: "a" }, { value: "b" }]], [], LOCAL, "values");
+    expect(readMerges(doc)).toEqual([range(0, 1, 0, 2)]);
+    expect(readCell(doc, at(0, 1))?.value).toBe("a");
+    expect(readCell(doc, at(0, 2))?.value ?? "").toBe("");
+  });
+
   it("복사 HTML은 병합을 colspan·rowspan으로 담고 가려진 칸은 쓰지 않는다", () => {
     const grid = [
       [{ value: "a" }, { value: "" }],

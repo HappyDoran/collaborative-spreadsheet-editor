@@ -1,5 +1,5 @@
 import type * as Y from "yjs";
-import type { CellAddress, CellRange } from "./address";
+import { isSingleCell, type CellAddress, type CellRange } from "./address";
 import { SHEET_COLS, SHEET_ROWS, cellKey, forEachAddress, mergeMap, readCell, setCellValue, writeGrid, type CellData, type PasteMode } from "./sheet";
 
 // 셀 병합 (DESIGN.md 8절). 문서에는 doc.getMap("merge")에 왼쪽 위 칸 키 → 오른쪽 아래 칸 키로 둔다.
@@ -78,7 +78,7 @@ export function expandToMerges(range: CellRange, merges: CellRange[]): CellRange
 
 // 범위가 병합 하나와 같으면 한 칸으로 본다 (이름 상자에 왼쪽 위 주소, 선택 배경 없음)
 export function isOneCell(range: CellRange, merges: CellRange[]): boolean {
-  return (range.start.row === range.end.row && range.start.col === range.end.col) || merges.some((m) => sameRange(m, range));
+  return isSingleCell(range) || merges.some((m) => sameRange(m, range));
 }
 
 // 방향키·Enter·Tab 한 칸 이동. 병합 안에서 출발하면 병합 가장자리 너머로, 병합에 들어가면 그 왼쪽 위에 선다.
@@ -102,7 +102,7 @@ export function mergeLosesValues(doc: Y.Doc, range: CellRange): boolean {
 
 // 병합: 걸친 병합을 흡수하고, 왼쪽 위 말고는 값을 지운다(서식은 둔다). 실행 취소 한 단계.
 export function mergeCells(doc: Y.Doc, range: CellRange, origin: unknown): void {
-  if (range.start.row === range.end.row && range.start.col === range.end.col) return;
+  if (isSingleCell(range)) return;
   doc.transact(() => {
     for (const m of rawMerges(doc)) if (intersects(m, range)) unsetMerge(doc, m);
     forEachAddress(range, (addr) => {
@@ -120,9 +120,10 @@ export function unmergeCells(doc: Y.Doc, range: CellRange, origin: unknown): voi
   }, origin);
 }
 
-// 붙여넣기 + 병합 (DESIGN.md 7절). merges는 grid 안 좌표(0 기준). 값만 붙여넣기는 병합을 건드리지 않고,
-// 그 밖에는 쓴 범위에 걸친 병합을 풀고 원본의 병합을 놓는다 — 쓴 범위를 벗어나는 병합(시트 밖으로 넘치거나,
-// HTML의 rowspan이 텍스트 행보다 큰 경우)은 버린다. 실행 취소 한 단계.
+// 붙여넣기 + 병합 (DESIGN.md 7절). merges는 grid 안 좌표(0 기준). 값 하나 붙여넣기(범위 채우기)와 값만 붙여넣기는
+// 병합을 건드리지 않고, 그 밖에는 쓴 범위에 걸친 병합을 풀고 원본의 병합을 놓는다 — 쓴 범위를 벗어나는 병합(시트 밖으로
+// 넘치거나, HTML의 rowspan이 텍스트 행보다 큰 경우)은 버린다. 남은 병합에 가려진 칸에 쓴 값은 지운다 — 화면에 안 보이는
+// 값이 합계에 들거나 병합을 풀 때 나타나지 않게. 실행 취소 한 단계.
 export function pasteGrid(
   doc: Y.Doc,
   target: CellRange,
@@ -131,19 +132,26 @@ export function pasteGrid(
   origin: unknown,
   mode: PasteMode = "all",
 ): CellRange | null {
+  const single = grid.length === 1 && grid[0]?.length === 1;
   let written: CellRange | null = null;
   doc.transact(() => {
     const area = writeGrid(doc, target, grid, origin, mode);
     written = area;
-    if (!area || mode === "values") return;
-    for (const m of rawMerges(doc)) if (intersects(m, area)) unsetMerge(doc, m);
-    for (const m of merges) {
-      const placed = {
-        start: { row: target.start.row + m.start.row, col: target.start.col + m.start.col },
-        end: { row: target.start.row + m.end.row, col: target.start.col + m.end.col },
-      };
-      if (placed.end.row <= area.end.row && placed.end.col <= area.end.col) setMerge(doc, placed);
+    if (!area) return;
+    if (mode !== "values" && !single) {
+      for (const m of rawMerges(doc)) if (intersects(m, area)) unsetMerge(doc, m);
+      for (const m of merges) {
+        const placed = {
+          start: { row: target.start.row + m.start.row, col: target.start.col + m.start.col },
+          end: { row: target.start.row + m.end.row, col: target.start.col + m.end.col },
+        };
+        if (placed.end.row <= area.end.row && placed.end.col <= area.end.col) setMerge(doc, placed);
+      }
     }
+    const kept = readMerges(doc);
+    forEachAddress(area, (addr) => {
+      if (isCovered(kept, addr) && readCell(doc, addr)?.value) setCellValue(doc, addr, "", origin);
+    });
   }, origin);
   return written;
 }

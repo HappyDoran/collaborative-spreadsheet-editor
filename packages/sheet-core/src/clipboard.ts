@@ -1,4 +1,5 @@
 import type { CellRange } from "./address";
+import { mergeAt } from "./merge";
 import type { CellData, CellFormat } from "./sheet";
 
 // 엑셀·구글 시트와 같은 클립보드 형식: 탭으로 열, 줄바꿈으로 행을 나눈다.
@@ -51,7 +52,7 @@ export function toHTML(grid: CellData[][], merges: CellRange[] = []): string {
       .filter(Boolean)
       .join(";");
   const td = (c: CellData, r: number, col: number) => {
-    const m = merges.find((m) => m.start.row <= r && r <= m.end.row && m.start.col <= col && col <= m.end.col);
+    const m = mergeAt(merges, { row: r, col });
     if (m && (m.start.row !== r || m.start.col !== col)) return "";
     const span = m
       ? `${m.end.col > m.start.col ? ` colspan="${m.end.col - m.start.col + 1}"` : ""}${m.end.row > m.start.row ? ` rowspan="${m.end.row - m.start.row + 1}"` : ""}`

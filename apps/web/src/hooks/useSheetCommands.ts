@@ -1,6 +1,6 @@
 "use client";
 
-import { anchorOf, intersects, isOneCell, toHTML, toTSV, type CellData, type CellFormat, type CellRange, type PasteMode } from "@sheet/core";
+import { anchorOf, intersects, isSingleCell, toHTML, toTSV, type CellData, type CellFormat, type CellRange, type PasteMode } from "@sheet/core";
 import { useMemo, type ClipboardEvent, type KeyboardEvent } from "react";
 import { selectedRange, useSelectionStore } from "@/stores/selectionStore";
 import { useStatusStore } from "@/stores/statusStore";
@@ -36,10 +36,9 @@ export function useSheetCommands(actions: SheetActions) {
     // ⌘⇧V: keydown에서 표시해 두면 이어지는 paste 이벤트가 값만 붙인다 (클립보드는 paste 이벤트에서만 읽힌다)
     let nextPasteMode: PasteMode = "all";
 
-    const merges = () => actions.merges();
-    const range = () => selectedRange(state(), merges());
+    const range = () => selectedRange(state(), actions.merges());
     // 값을 읽고 쓰는 칸 — 병합 안이면 왼쪽 위 (다른 탭이 내 활성 셀을 병합에 넣었어도 가려진 칸에 쓰지 않는다)
-    const target = () => anchorOf(merges(), state().active);
+    const target = () => anchorOf(actions.merges(), state().active);
 
     // 입력·편집을 시작한다. 시작 순간의 셀 값을 함께 기록한다.
     const begin = (mode: "enter" | "edit", draft: string) =>
@@ -69,8 +68,8 @@ export function useSheetCommands(actions: SheetActions) {
 
     const commitAndMove = (key: "Enter" | "Tab", back: boolean) => {
       commit();
-      if (key === "Enter") state().moveAfterEnter(back, merges());
-      else state().moveAfterTab(back, merges());
+      if (key === "Enter") state().moveAfterEnter(back, actions.merges());
+      else state().moveAfterTab(back, actions.merges());
     };
 
     const toggle = (format: CellFormat) => {
@@ -88,7 +87,7 @@ export function useSheetCommands(actions: SheetActions) {
     const selectionAsClipboard = () => {
       const copied = range();
       const grid = actions.readGrid(copied);
-      const inside = merges()
+      const inside = actions.merges()
         .filter((m) => intersects(m, copied))
         .map((m) => ({
           start: { row: m.start.row - copied.start.row, col: m.start.col - copied.start.col },
@@ -185,8 +184,8 @@ export function useSheetCommands(actions: SheetActions) {
     const toggleMerge = () => {
       commit();
       const r = range();
-      if (merges().some((m) => intersects(m, r))) return actions.unmerge(r);
-      if (isOneCell(r, [])) return useStatusStore.getState().show("병합할 칸을 두 개 이상 선택해 주세요.");
+      if (actions.merges().some((m) => intersects(m, r))) return actions.unmerge(r);
+      if (isSingleCell(r)) return useStatusStore.getState().show("병합할 칸을 두 개 이상 선택해 주세요.");
       if (actions.mergeLosesValues(r) && !window.confirm("병합하면 왼쪽 위 칸의 값만 남고 나머지 값은 지워져요. 병합할까요?")) return;
       actions.merge(r);
       state().selectRange(r.start, r.start);
@@ -234,7 +233,7 @@ export function useSheetCommands(actions: SheetActions) {
       if (arrow && s.mode !== "edit") {
         e.preventDefault();
         commit();
-        state().move(arrow[0], arrow[1], e.shiftKey, merges());
+        state().move(arrow[0], arrow[1], e.shiftKey, actions.merges());
         return;
       }
       if (s.mode !== "idle") return;
