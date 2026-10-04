@@ -2,7 +2,7 @@
 
 import { cellKey, type ProposedEdit } from "@sheet/core";
 import styled from "styled-components";
-import { rectOf, single } from "./gridGeometry";
+import { areaOf, single } from "./gridGeometry";
 
 // AI 제안 미리보기 — 형광펜 칸 위에 원래 값(취소선)과 제안 값 (DESIGN.md 13절).
 // 형광펜은 참여자 10색에 없는 표시라 사람의 선택(실선)·복사/입력 중(점선)과 섞이지 않는다.
@@ -13,14 +13,14 @@ export function ProposalLayer({ edits, stale }: { edits: ProposedEdit[]; stale: 
     const now = stale.get(key);
     if (now !== undefined) {
       return (
-        <Box key={key} data-proposal={key} style={rectOf(single(addr))} $stale>
+        <Box key={key} data-proposal={key} style={areaOf(single(addr))} $stale>
           <Now>지금 {now || "빈 칸"} · 건너뜀</Now>
           <After $skipped>{after}</After>
         </Box>
       );
     }
     return (
-      <Box key={key} data-proposal={key} style={rectOf(single(addr))} $stale={false}>
+      <Box key={key} data-proposal={key} style={areaOf(single(addr))} $stale={false}>
         {before && <Before>{before}</Before>}
         <After>{after}</After>
       </Box>

@@ -8,7 +8,7 @@ import type { SheetCommands } from "@/hooks/useSheetCommands";
 import type { SheetActions } from "@/hooks/useSheet";
 import type { Participant } from "@/hooks/usePresence";
 import { selectedRange, useSelectionStore } from "@/stores/selectionStore";
-import { COL_W, HEADER_W, ROW_H, rectOf, single } from "./gridGeometry";
+import { COL_W, HEADER_W, LINE_H, ROW_H, areaOf, lineCount, rowHeight, single } from "./gridGeometry";
 import { shortcut } from "@/hooks/shortcut";
 import { ContextMenu, type MenuItem } from "./ContextMenu";
 import { ProposalLayer } from "./ProposalLayer";
@@ -130,12 +130,16 @@ export function Grid({ actions, version, others, proposals, stale, onOpenAi, com
   // 선택이 움직일 때는 셀을 다시 읽지 않는다. 문서가 바뀔 때만 다시 만든다.
   // Y.Doc은 바뀌어도 참조가 같아 의존성으로 쓸 수 없다 — 문서 변경마다 오르는 version을 대신 의존성에 둔다
   // (본문에서 쓰지 않으면 린트가 불필요한 의존성으로 보아 void로 읽는다).
-  const cells = useMemo(() => {
+  // 행 높이도 같이 정한다 — 그 행에서 줄이 가장 많은 칸에 맞춘다.
+  const { cells, rowTemplate } = useMemo(() => {
     void version;
     const out = [];
+    const heights = [ROW_H];
     for (let row = 0; row < SHEET_ROWS; row++) {
+      let lines = 1;
       for (let col = 0; col < SHEET_COLS; col++) {
         const cell = actions.read({ row, col });
+        if (cell?.value) lines = Math.max(lines, lineCount(cell.value));
         out.push(
           <Cell
             key={`${row}:${col}`}
@@ -148,13 +152,15 @@ export function Grid({ actions, version, others, proposals, stale, onOpenAi, com
           />,
         );
       }
+      heights.push(rowHeight(lines));
     }
-    return out;
+    return { cells: out, rowTemplate: heights.map((h) => `${h}px`).join(" ") };
   }, [actions, version]);
 
   return (
     <Scroller>
       <Canvas
+        style={{ gridTemplateRows: rowTemplate }}
         onMouseDown={onMouseDown}
         onMouseOver={onMouseOver}
         onDoubleClick={onDoubleClick}
@@ -196,10 +202,10 @@ export function Grid({ actions, version, others, proposals, stale, onOpenAi, com
         <RemoteCursors others={others} />
         {/* 제안이 있는 동안은 선택 배경을 칠하지 않는다 — 형광펜과 섞여 탁해지지 않게 */}
         <RangeBox
-          style={rectOf(range)}
+          style={areaOf(range)}
           $multi={proposals.length === 0 && !isSingleCell(range)}
         />
-        {copied && <CopyBox style={rectOf(copied)} />}
+        {copied && <CopyBox style={areaOf(copied)} />}
         <ActiveInput actions={actions} commands={commands} inputRef={inputRef} active={active} onOpenMenu={openMenuAtCell} />
       </Canvas>
       {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems} onClose={closeMenu} />}
@@ -225,8 +231,14 @@ function ActiveInput({
       spellCheck={false}
       autoComplete="off"
       wrap="off"
-      // 편집 중에는 줄 수만큼 아래로 펼친다 — 셀 높이는 고정이라 여러 줄 값의 전체는 여기서 보인다
-      style={{ ...rectOf(single(active)), height: mode === "idle" ? ROW_H : draft.split("\n").length * EDIT_LINE_H + 4 }}
+      // textarea는 inset만으로 늘어나지 않아 크기를 직접 준다. 편집 중에는 초안의 줄 수만큼 아래로 펼친다
+      // — 확정 전이라 행 높이는 아직 그대로다.
+      style={{
+        ...areaOf(single(active)),
+        width: "100%",
+        height: "100%",
+        ...(mode !== "idle" && { bottom: "auto", minHeight: "100%", height: rowHeight(lineCount(draft)) }),
+      }}
       $editing={mode !== "idle"}
       $bold={!!cell?.bold}
       $italic={!!cell?.italic}
@@ -281,7 +293,6 @@ const Canvas = styled.div`
   position: relative;
   display: grid;
   grid-template-columns: ${HEADER_W}px repeat(${SHEET_COLS}, ${COL_W}px);
-  grid-template-rows: repeat(${SHEET_ROWS + 1}, ${ROW_H}px);
   width: max-content;
   user-select: none;
   cursor: cell;
@@ -334,10 +345,13 @@ const formatStyles = (p: FormatProps) => `
   text-decoration: ${p.$underline ? "underline" : "none"};
 `;
 
-// 셀 안 줄바꿈은 줄을 지키되 높이가 고정이라 첫 줄만 보인다 (DESIGN.md 9절)
+// 셀 안 줄바꿈은 줄을 지킨다. 행보다 줄이 적은 칸은 엑셀처럼 아래에 붙는다.
 const CellBox = styled.div<FormatProps & { $numeric: boolean }>`
-  padding: 0 6px;
-  line-height: ${ROW_H - 1}px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 0 6px 3px;
+  line-height: ${LINE_H}px;
   white-space: pre;
   overflow: hidden;
   text-overflow: clip;
@@ -364,20 +378,17 @@ const CopyBox = styled.div`
   outline-offset: -2px;
 `;
 
-// 편집칸 한 줄 높이 — 위아래 테두리 2px씩을 뺀 셀 높이
-const EDIT_LINE_H = ROW_H - 4;
-
 // 활성 셀 위에 늘 떠 있는 입력칸. 준비 상태에서는 투명해서 아래 셀 값이 보이고, 입력이 시작되면 셀을 덮는다.
 // 셀 안 줄바꿈을 담으려고 textarea다 — input은 값의 줄바꿈을 지운다.
 const CellInput = styled.textarea<FormatProps & { $editing: boolean }>`
   position: absolute;
   z-index: 2;
   margin: 0;
-  padding: 0 6px;
+  padding: 2px 6px;
   border: 2px solid var(--accent);
   outline: none;
   font: inherit;
-  line-height: ${EDIT_LINE_H}px;
+  line-height: ${LINE_H}px;
   white-space: pre;
   overflow: hidden;
   resize: none;

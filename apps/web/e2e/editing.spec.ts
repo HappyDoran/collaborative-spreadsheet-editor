@@ -27,7 +27,7 @@ test("M1-A10 숫자 없이 기호만 있는 칸(-)은 글자처럼 왼쪽 정렬
   await expect(cell(page, 1, 0)).toHaveCSS("text-align", "right");
 });
 
-test("M1-A14 Alt+Enter는 셀 안 줄바꿈, 편집해도 줄바꿈이 남는다", async ({ context }) => {
+test("M1-A14 Alt+Enter는 셀 안 줄바꿈, 행 높이가 줄 수에 맞춰지고 편집해도 줄바꿈이 남는다", async ({ context }) => {
   const page = await openSheet(context);
   await cell(page, 0, 0).click();
   await page.keyboard.type("줄1");
@@ -36,11 +36,18 @@ test("M1-A14 Alt+Enter는 셀 안 줄바꿈, 편집해도 줄바꿈이 남는다
   await page.keyboard.press("Enter");
   await expect(cell(page, 0, 0)).toHaveText("줄1\n줄2", { useInnerText: false });
   await expect(nameBox(page)).toHaveText("A2");
+  // 행 높이는 줄이 가장 많은 칸에 맞춘다 — 같은 행의 다른 칸도, 다음 행은 그대로
+  const height = async (row: number, col: number) => (await cell(page, row, col).boundingBox())?.height;
+  expect(await height(0, 1)).toBe(44);
+  expect(await height(1, 0)).toBe(26);
+  expect((await page.getByLabel("셀 입력").boundingBox())?.height).toBe(26); // 선택만 한 칸의 입력칸은 셀 크기
 
-  // 편집칸은 줄 수만큼 펼쳐지고, 편집 뒤에도 줄바꿈이 지워지지 않는다 (input이던 때는 지워졌다)
+  // 편집 중에도 줄 수만큼 펼쳐지고, 편집 뒤에도 줄바꿈이 지워지지 않는다 (input이던 때는 지워졌다)
   await cell(page, 0, 0).click();
   await page.keyboard.press("F2");
-  expect((await page.getByLabel("셀 입력").boundingBox())?.height).toBe(48);
+  await page.keyboard.press("Alt+Enter");
+  expect((await page.getByLabel("셀 입력").boundingBox())?.height).toBe(62);
+  await page.keyboard.press("Backspace");
   await page.keyboard.type("!");
   await page.keyboard.press("Enter");
   await expect(cell(page, 0, 0)).toHaveText("줄1\n줄2!", { useInnerText: false });
