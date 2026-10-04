@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { MOD, cell, nameBox, openSheet, typeInto } from "./sheet";
 
 // M3 AI 편집 — 개발 서버는 가짜 응답 모드로 시작한다 (크레딧을 쓰지 않고 결과가 매번 같다).
-// 가짜 응답: 대상 셀마다 "값 ✓"(빈 칸은 "✓ 주소"). 지시의 #slow #empty #outside #quota #invalid로 상황을 흉내 낸다.
+// 가짜 응답: 대상 셀마다 "값 ✓"(빈 칸은 "✓ 주소"). 지시의 #slow #hold #empty #outside #quota #invalid로 상황을 흉내 낸다.
 
 const panel = (page: Page) => page.getByRole("complementary", { name: "AI 편집" });
 const proposal = (page: Page, row: number, col: number) => page.locator(`[data-proposal="${row}:${col}"]`);
@@ -14,7 +14,8 @@ async function seed(page: Page) {
   await page.keyboard.press("Shift+ArrowDown"); // A2:A3
 }
 
-// 생성 중 상태를 붙잡아야 하는 시나리오는 대상을 A2:A11(10칸)로 넓혀 #slow 생성이 5초쯤 걸리게 한다
+// 진행 문구처럼 생성이 끝나기까지의 흐름을 보는 시나리오는 대상을 A2:A11(10칸)로 넓혀 #slow 생성이 5초쯤 걸리게 한다.
+// 생성 중 상태에서 조작하는 시나리오(중지·새로고침·다른 탭 표시)는 #hold — #slow는 부하가 크면 조작 전에 생성이 끝난다
 async function widen(page: Page) {
   for (let i = 0; i < 8; i++) await page.keyboard.press("Shift+ArrowDown");
 }
@@ -74,8 +75,7 @@ test("M3-2 셀 단위 스트리밍 → 미리보기 → 적용 → 실행 취소
 test("M3-3 생성 중 중지하면 받은 셀까지 버리고 시트는 그대로", async ({ context }) => {
   const page = await openSheet(context);
   await seed(page);
-  await widen(page);
-  await ask(page, "확인 표시 #slow");
+  await ask(page, "확인 표시 #hold");
   await expect(proposal(page, 1, 0)).toBeVisible();
   await panel(page).getByRole("button", { name: "중지" }).click();
   await expect(panel(page)).toContainText("생성을 멈췄어요. 시트는 바뀌지 않았어요.");
@@ -165,7 +165,7 @@ test("M3-10 새로고침해도 검토 중인 제안이 남는다, 생성 중 새
   const page = await openSheet(context);
   await seed(page);
   await ask(page, "확인 표시");
-  await expect(proposal(page, 1, 0)).toBeVisible();
+  await expect(panel(page).getByRole("button", { name: "적용", exact: true })).toBeVisible(); // 생성이 끝나 검토 중일 때 새로고침
   await page.reload();
   await expect(proposal(page, 1, 0)).toContainText("1000 ✓");
   await expect(panel(page).getByRole("button", { name: "적용", exact: true })).toBeVisible();
@@ -173,8 +173,7 @@ test("M3-10 새로고침해도 검토 중인 제안이 남는다, 생성 중 새
 
   await cell(page, 1, 0).click();
   await page.keyboard.press("Shift+ArrowDown");
-  await widen(page);
-  await panel(page).getByLabel("AI에게 할 일").fill("확인 표시 #slow");
+  await panel(page).getByLabel("AI에게 할 일").fill("확인 표시 #hold");
   await panel(page).getByLabel("AI에게 할 일").press("Enter");
   await expect(proposal(page, 1, 0)).toBeVisible();
   await page.reload();
@@ -186,25 +185,26 @@ test("M3-11 다른 탭에는 제안 값 대신 'AI 생성 중·검토 중' 범�
   const a = await openSheet(context, "서연");
   const b = await openSheet(context, "준호");
   await seed(a);
-  await widen(a);
-  await ask(a, "확인 표시 #slow");
+  await ask(a, "확인 표시 #hold");
   await expect(b.getByText("서연 · AI 생성 중")).toBeVisible();
   await expect(a.locator("[data-proposal]").first()).toBeVisible();
   await expect(b.locator("[data-proposal]")).toHaveCount(0); // 제안 값은 공유하지 않는다
-  await expect(b.getByText("서연 · AI 검토 중")).toBeVisible({ timeout: 10_000 });
-  await a.getByRole("complementary", { name: "AI 편집" }).getByRole("button", { name: "버리기", exact: true }).click();
+  await panel(a).getByRole("button", { name: "중지" }).click();
+  await panel(a).getByLabel("AI에게 할 일").fill("확인 표시");
+  await panel(a).getByLabel("AI에게 할 일").press("Enter");
+  await expect(b.getByText("서연 · AI 검토 중")).toBeVisible();
+  await panel(a).getByRole("button", { name: "버리기", exact: true }).click();
   await expect(b.getByText(/서연 · AI/)).toHaveCount(0);
 });
 
 test("M3-12 모델 선택: 고른 모델로 요청하고, 생성 중에는 바꿀 수 없다", async ({ context }) => {
   const page = await openSheet(context);
   await seed(page);
-  await widen(page);
   await page.keyboard.press(`${MOD}+k`);
   const select = panel(page).getByLabel("AI 모델");
   await expect(select).toHaveValue("gpt-5.4-mini"); // 기본
   await select.selectOption("gpt-5.4-nano");
-  await panel(page).getByLabel("AI에게 할 일").fill("확인 표시 #slow");
+  await panel(page).getByLabel("AI에게 할 일").fill("확인 표시 #hold");
   await panel(page).getByLabel("AI에게 할 일").press("Enter");
   await expect(panel(page)).toContainText("가짜 응답이에요(gpt-5.4-nano)"); // 서버까지 전달됐다
   await expect(select).toBeDisabled();

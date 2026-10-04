@@ -2,7 +2,7 @@ import { parseA1, resolveModel, toA1, forEachAddress, inScope, type AiErrorCode,
 
 // 가짜 응답 (DESIGN.md 13절). 크레딧 없이 실제와 같은 항목 흐름을 시간차로 낸다 — 자동 테스트와 디버깅용.
 // 지시에 다음 표시가 있으면 해당 상황을 흉내 낸다: #quota(한도 소진) #invalid(형식 오류) #empty(바꿀 셀 없음)
-// #outside(대상 밖·잘못된 주소 섞기) #slow(항목 사이 0.5초)
+// #outside(대상 밖·잘못된 주소 섞기) #slow(항목 사이 0.5초) #hold(첫 제안 뒤 요청이 끊길 때까지 생성 중으로 머묾)
 // 이 라우트가 알고 던지는 실패 — 코드 그대로 브라우저에 보낸다
 export class Failure extends Error {
   constructor(readonly code: AiErrorCode) {
@@ -45,5 +45,6 @@ export async function* mockItems(body: AiRequestBody, signal: AbortSignal): Asyn
     if (has("#invalid")) throw new Failure("invalid");
     const before = known.get(cell) ?? "";
     yield { kind: "edit", cell, text: before ? `${before} ✓` : `✓ ${cell}` };
+    if (has("#hold")) await wait(2 ** 31 - 1); // setTimeout 최댓값 — 사실상 중지·새로고침으로만 끝난다
   }
 }
