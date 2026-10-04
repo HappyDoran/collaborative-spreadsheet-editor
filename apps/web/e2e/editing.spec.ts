@@ -34,7 +34,7 @@ test("M1-A14 Alt+Enter는 셀 안 줄바꿈, 행 높이가 줄 수에 맞춰지�
   await page.keyboard.press("Alt+Enter");
   await page.keyboard.type("줄2");
   await page.keyboard.press("Enter");
-  await expect(cell(page, 0, 0)).toHaveText("줄1\n줄2", { useInnerText: false });
+  await expect(cell(page, 0, 0)).toHaveText(/^줄1\n줄2$/, { useInnerText: false });
   await expect(nameBox(page)).toHaveText("A2");
   // 행 높이는 줄이 가장 많은 칸에 맞춘다 — 같은 행의 다른 칸도, 다음 행은 그대로
   const height = async (row: number, col: number) => (await cell(page, row, col).boundingBox())?.height;
@@ -50,7 +50,7 @@ test("M1-A14 Alt+Enter는 셀 안 줄바꿈, 행 높이가 줄 수에 맞춰지�
   await page.keyboard.press("Backspace");
   await page.keyboard.type("!");
   await page.keyboard.press("Enter");
-  await expect(cell(page, 0, 0)).toHaveText("줄1\n줄2!", { useInnerText: false });
+  await expect(cell(page, 0, 0)).toHaveText(/^줄1\n줄2!$/, { useInnerText: false });
 
   await cell(page, 0, 0).click();
   await expect(page.getByLabel("셀 값")).toHaveValue("줄1\n줄2!");
@@ -144,6 +144,22 @@ test("M1-G1 한글 조합 입력의 첫 글자 유지 (CDP IME 주입)", async (
   await expect(cell(page, 0, 0)).toHaveText("한글");
 });
 
+// 문자열 기대값은 공백·줄바꿈을 하나로 합쳐 비교한다 — 줄바꿈 개수는 정규식으로 본다
+test("M1-G5 한글 조합을 끝내는 Enter·Alt+Enter가 빈 줄을 더하지 않는다", async ({ context, browserName }) => {
+  test.skip(browserName !== "chromium", "CDP는 Chromium 전용");
+  const page = await openSheet(context);
+  await cell(page, 0, 0).click();
+  await page.keyboard.type("항목");
+  // 입력기가 조합을 끝낼 때의 keydown(keyCode 229) — 앱은 건너뛰고, 브라우저 기본 동작이 줄바꿈을 넣으려 한다
+  const cdp = await context.newCDPSession(page);
+  const ime = { key: "Enter", code: "Enter", windowsVirtualKeyCode: 229, text: "\r" };
+  for (const type of ["rawKeyDown", "char", "keyUp"] as const) await cdp.send("Input.dispatchKeyEvent", { type, ...ime });
+  await page.keyboard.press("Alt+Enter");
+  await page.keyboard.type("안녕");
+  await page.keyboard.press("Enter");
+  await expect(cell(page, 0, 0)).toHaveText(/^항목\n안녕$/, { useInnerText: false });
+});
+
 test("M1-F1 새로고침 후 값·서식 유지", async ({ context }) => {
   const page = await openSheet(context);
   await typeInto(page, 0, 0, "saved");
@@ -216,7 +232,7 @@ test("M1-D10 셀 안 줄바꿈과 병합 칸을 살리고, 구글 문서의 굵�
   await expect(cell(page, 0, 2)).toHaveText("굵게");
   await expect(cell(page, 0, 2)).toHaveCSS("font-weight", "700");
   await expect(cell(page, 0, 1)).toHaveText("");
-  await expect(cell(page, 1, 0)).toHaveText("줄1\n줄2", { useInnerText: false });
+  await expect(cell(page, 1, 0)).toHaveText(/^줄1\n줄2$/, { useInnerText: false });
   await expect(cell(page, 1, 1)).toHaveText("b");
 
   // 구글 문서는 굵지 않은 글도 <b style="font-weight:normal">로 감싼다 (2026-10-03 기준 형태)

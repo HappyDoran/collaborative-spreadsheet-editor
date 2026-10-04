@@ -16,6 +16,19 @@ const ARROWS: Record<string, [number, number]> = {
   ArrowRight: [0, 1],
 };
 
+// 셀 입력칸·값 편집줄(textarea)이 스스로 줄바꿈을 넣지 못하게 막는다. 줄바꿈은 Alt+Enter(insertLineBreak)로만 들어간다.
+// 한글 조합 중 Enter는 조합 중 keydown(우리가 건너뛰는 것)의 기본 동작으로 textarea에 줄바꿈이 들어가,
+// 확정할 때마다 값 끝에 빈 줄이 쌓이고 Alt+Enter는 두 줄이 됐다. setRangeText는 beforeinput을 내지 않아 막히지 않는다.
+// React 19 ref 콜백 — 정리 함수를 돌려준다.
+const blockNativeLineBreak = (e: Event) => {
+  const type = (e as InputEvent).inputType;
+  if (type === "insertLineBreak" || type === "insertParagraph") e.preventDefault();
+};
+export function guardLineBreaks(el: HTMLTextAreaElement | null) {
+  el?.addEventListener("beforeinput", blockNativeLineBreak);
+  return () => el?.removeEventListener("beforeinput", blockNativeLineBreak);
+}
+
 // 엑셀 조작 관례(DESIGN.md 7절)를 한 곳에 모은 명령 모음. 그리드 입력칸과 값 편집줄이 같이 쓴다.
 export function useSheetCommands(actions: SheetActions) {
   return useMemo(() => {

@@ -5,7 +5,7 @@ import type { RefObject } from "react";
 import styled from "styled-components";
 import { useShallow } from "zustand/react/shallow";
 import type { SheetActions } from "@/hooks/useSheet";
-import type { SheetCommands } from "@/hooks/useSheetCommands";
+import { guardLineBreaks, type SheetCommands } from "@/hooks/useSheetCommands";
 import { useAiStore } from "@/stores/aiStore";
 import { selectedRange, useSelectionStore } from "@/stores/selectionStore";
 
@@ -30,6 +30,7 @@ export function FormulaBar({ commands, actions, gridInputRef }: Props) {
     <Bar>
       <NameBox aria-label="선택한 셀">{isSingleCell(range) ? toA1(active) : `${toA1(range.start)}:${toA1(range.end)}`}</NameBox>
       <ValueInput
+        ref={guardLineBreaks}
         aria-label="셀 값"
         spellCheck={false}
         rows={1}

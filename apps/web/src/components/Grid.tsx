@@ -4,7 +4,7 @@ import { SHEET_COLS, SHEET_ROWS, colToLabel, inScope, isSingleCell, parseNumber,
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type RefObject } from "react";
 import styled from "styled-components";
 import { useShallow } from "zustand/react/shallow";
-import type { SheetCommands } from "@/hooks/useSheetCommands";
+import { guardLineBreaks, type SheetCommands } from "@/hooks/useSheetCommands";
 import type { SheetActions } from "@/hooks/useSheet";
 import type { Participant } from "@/hooks/usePresence";
 import { selectedRange, useSelectionStore } from "@/stores/selectionStore";
@@ -223,6 +223,7 @@ function ActiveInput({
 }: Pick<Props, "actions" | "commands" | "inputRef"> & { active: CellAddress; onOpenMenu: () => void }) {
   const { mode, draft } = useSelectionStore(useShallow((s) => ({ mode: s.mode, draft: s.draft })));
   const cell = actions.read(active);
+  useEffect(() => guardLineBreaks(inputRef.current), [inputRef]);
   return (
     <CellInput
       ref={inputRef}
