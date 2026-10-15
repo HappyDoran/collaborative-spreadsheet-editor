@@ -25,61 +25,15 @@ https://collab-sheet-gamma.vercel.app (Vercel, 실제 AI 연결). 가입이나 �
 
 ## 폴더 구조
 
-pnpm workspace다. 도메인 로직(`packages/sheet-core`)은 브라우저·React 없이 돌아가는 순수 TypeScript이고, 앱(`apps/web`)이 그것을 화면과 탭 간 동기화에 연결한다. 파일 하나하나의 책임은 `docs/architecture/folder-structure.md`에 있다.
+| 위치 | 책임 |
+| --- | --- |
+| `packages/sheet-core` | UI와 분리한 셀 연산·좌표·AI 제안 판정과 단위 테스트 |
+| `apps/web/src` | 화면·hooks·탭 로컬 상태·공동 편집 연결·AI 서버 라우트 |
+| `apps/web/e2e` | 실제 브라우저 편집·다중 탭·AI 흐름 검증 |
+| `docs/` | 요구사항·현재 상태·설계 보조 자료·수동 검증 기록 |
+| `.codex/skills`·`.claude/skills`·`scripts/` | Agent 작업 절차와 구조 검사 |
 
-```
-.
-├── README.md                              # 제출 문서 — 배포·체험 순서, 결정과 이유, 실행·검증 명령
-├── DESIGN.md                              # 설계 판단 근거와 검토한 대안 (README 표의 절 번호)
-├── LLM_REPORT.md                          # LLM 활용 기록 — 도구, 역할 구분, 기각·수정 사례, 핵심 프롬프트
-├── AGENTS.md                              # AI Agent 진입점 — 문서 맵, 절대 금지, 작업 흐름
-├── CLAUDE.md -> AGENTS.md                 # Claude용 진입 symlink
-├── TECH_RULES.md                          # 고정 스택·버전, 상태 소유권, 좌표·동기화·AI 규약, 구현 금지
-├── mise.toml                              # Node·pnpm 버전 정본
-├── package.json                           # 루트 명령 (dev·test·e2e·typecheck·lint·build·check)
-├── pnpm-workspace.yaml                    # apps/*, packages/*
-│
-├── packages/sheet-core/                   # @sheet/core — 순수 도메인 로직, Vitest 단위 테스트
-│   └── src/
-│       ├── sheet.ts                       # 셀 문서 스키마(Y.Doc), 값·서식·붙여넣기 연산, 실행 취소 범위
-│       ├── merge.ts                       # 셀 병합 — 병합·해제, 겹침 정리, 병합을 건너뛰는 이동, 병합째 붙여넣기
-│       ├── address.ts                     # 좌표 ↔ A1 표기, 범위 정규화
-│       ├── clipboard.ts                   # 복사 형식 — TSV, 서식·병합을 담은 HTML 표
-│       ├── number.ts                      # 셀 글자 → 숫자 (오른쪽 정렬, 상태 표시줄 합계)
-│       ├── participants.ts                # 참여자 색 팔레트, 이름 정규화, awareness 상태 타입
-│       ├── ai/                            # AI 계약(types), 제안 판정·충돌(proposal), 보낼 시트 내용(context), 모델 목록(models)
-│       └── *.test.ts                      # 모듈 옆 단위 테스트 — 동작 명세
-│
-├── apps/web/                              # @sheet/web — Next.js App Router 앱
-│   ├── src/
-│   │   ├── app/                           # 페이지와 서버 라우트
-│   │   │   └── api/ai/                    # OpenAI 호출·NDJSON 스트리밍(route), 지시문(prompt), 가짜 응답(mock)
-│   │   ├── collab/                        # 탭 간 공동 편집 — Y.Doc·awareness·IndexedDB 세션, BroadcastChannel 연결
-│   │   ├── stores/                        # Zustand — 선택·편집 모드, 이름·색, 안내 문구, AI 패널·제안
-│   │   ├── hooks/                         # 시트 연산(useSheet), 엑셀 키맵·클립보드(useSheetCommands), AI 흐름(useAiEdit), 참여자 알림
-│   │   ├── ai/                            # 브라우저 쪽 AI 스트림 읽기·중지
-│   │   └── components/                    # 화면 — 그리드, 툴바, 값 편집줄, 상태 표시줄, AI 패널, 우클릭 메뉴, 다른 참여자·AI 제안 표시
-│   ├── e2e/                               # Playwright 시나리오 — 편집·병합·공동 편집·AI·우클릭 메뉴·공동 편집×AI
-│   ├── playwright.config.ts               # Chromium, 3100번 포트 dev 서버, 테스트마다 새 컨텍스트
-│   └── .env.example                       # OPENAI_API_KEY 자리 (실제 키는 .env.local, 커밋하지 않음)
-│
-├── docs/
-│   ├── manual-scenarios.md                # 수동 확인 시나리오(ID·단계·기대 결과)와 브라우저별 확인 기록
-│   ├── spec/
-│   │   ├── requirements.md                # 과제 요구사항 번호 (E·C·A·X·T·D)
-│   │   └── gap-analysis.md                # 요구사항 대비 현재 상태, 백로그, 하지 않은 항목
-│   ├── architecture/folder-structure.md   # 파일별 책임 스냅샷
-│   ├── AI_AGENT_HARNESS.md                # AI Agent 작업 지원 체계 설명
-│   └── prompts.md                         # 프롬프트 원본 기록 — 잘 된 것·실패한 것과 이유
-│
-├── .codex/skills/                         # 작업별 절차 (canonical)
-│   ├── layer-architecture/SKILL.md        # 패키지·폴더 배치 규칙, 허용 import 방향
-│   ├── test-policy/SKILL.md               # 검증 계층과 테스트 필수 대상
-│   └── git-commit/SKILL.md                # 커밋 제목·본문·작성 주체 표기
-├── .claude/skills/                        # .codex/skills를 가리키는 symlink
-│
-└── scripts/check-structure.sh             # 구조·문서 frontmatter·비밀·금칙어 검사 (pnpm check)
-```
+파일별 책임은 [폴더 스냅샷](docs/architecture/folder-structure.md), 문서별 소유 사실은 [Agent 진입점](AGENTS.md)의 문서 맵에서 확인한다. README는 배포·체험·실행·검증과 주요 결정의 요약을 제공한다.
 
 ## 공동 편집과 AI가 만나는 지점: 결정과 이유
 
