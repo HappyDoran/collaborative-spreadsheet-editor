@@ -1,0 +1,1 @@
+../../../.codex/skills/parallel/SKILL.md

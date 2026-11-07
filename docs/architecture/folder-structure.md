@@ -1,7 +1,7 @@
 ---
 title: 현재 폴더 구성 스냅샷
 kind: snapshot
-last_verified: 2026-10-05
+last_verified: 2026-11-07
 ---
 
 # 현재 폴더 구성 스냅샷
@@ -31,8 +31,14 @@ last_verified: 2026-10-05
 ├── .codex/skills/                    # canonical skill (Codex 진입)
 │   ├── layer-architecture/SKILL.md
 │   ├── test-policy/SKILL.md
-│   └── git-commit/SKILL.md
+│   ├── change-review/SKILL.md
+│   ├── git-commit/SKILL.md
+│   ├── backlog/SKILL.md
+│   ├── spec-intake/SKILL.md
+│   └── parallel/SKILL.md
+├── .codex/agents/sheet-<역할>.md     # canonical 역할 정의 (planner·designer·frontend·backend·prompt-engineer·business)
 ├── .claude/skills/<name>/SKILL.md -> ../../../.codex/skills/<name>/SKILL.md
+├── .claude/agents/<name>.md -> ../../.codex/agents/<name>.md
 ├── scripts/check-structure.sh        # 구조·문서·비밀·금칙어 계약 검사
 ├── packages/sheet-core/              # @sheet/core — 순수 도메인, node Vitest
 │   └── src/

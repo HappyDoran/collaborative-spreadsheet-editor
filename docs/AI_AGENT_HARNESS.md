@@ -1,7 +1,7 @@
 ---
 title: AI Agent 작업 지원 체계
 kind: design
-last_verified: 2026-10-02
+last_verified: 2026-11-07
 ---
 
 # AI Agent 작업 지원 체계
@@ -21,6 +21,7 @@ last_verified: 2026-10-02
   → 코드·소유 문서 변경
   → pnpm test · typecheck · lint · check + 다중 탭 수동 확인
   → LLM 제안 기각·수정 사례를 LLM_REPORT.md에 즉시 기록
+  → change-review로 diff·소유 문서·검증 보고 검토
   → 커밋 본문에 결정 이유와 검증 증거 보존
   → 다음 세션이 갱신된 현재 사실에서 다시 시작
 ```
@@ -57,32 +58,51 @@ last_verified: 2026-10-02
 
 문서가 구현과 다르면 구현이 현재 상태다. 계약을 의도적으로 바꾸는 작업은 코드와 소유 문서를 같은 커밋에서 갱신한다. 문서별 소유 사실과 갱신 트리거는 `AGENTS.md` 문서 맵이, 파일 위치는 `docs/architecture/folder-structure.md`가 소유한다 — 여기 복사하지 않는다.
 
-## Canonical과 도구별 진입
+## 진입점과 skill
 
 ```
-Codex   → AGENTS.md → .codex/skills/<skill>/SKILL.md
+Codex   → AGENTS.md → .codex/skills/<skill>/SKILL.md, .codex/agents/<role>.md
 Claude  → CLAUDE.md (symlink) → AGENTS.md → .claude/skills/<skill>/SKILL.md (symlink) → .codex/skills/<skill>/SKILL.md
+                                          → .claude/agents/<role>.md (symlink) → .codex/agents/<role>.md
 ```
 
-복사본은 두지 않는다. `scripts/check-structure.sh`가 symlink가 정확한 대상을 가리키는지 검사한다.
+skill은 `.codex/skills/<name>/SKILL.md`, 역할 정의는 `.codex/agents/<name>.md`가 canonical이며 `.claude/` 아래는 symlink만 둔다. 복사본은 두지 않는다. skill·역할은 `name`(디렉터리·파일명과 같음)·`description` frontmatter를, 루트 규범 문서와 `docs/` 아래 문서는 `title`·`kind`·`last_verified` frontmatter를 둔다(대상과 예외는 `AGENTS.md` 문서 추가 규칙). 문서 정책은 별도 skill 없이 `AGENTS.md` 문서 추가 규칙이 소유한다.
 
-## Skill별 역할
-
-| Skill | 적용 대상 | 판단 내용 |
+| skill | 적용 시점 | 판단 내용 |
 | --- | --- | --- |
 | `layer-architecture` | 파일 추가·이동, 새 기능 | 패키지·폴더, 허용 import, 이름, 확장 조건 |
 | `test-policy` | 모든 코드 변경 | 단위 테스트 필수 대상, 타입·린트·빌드·구조 검사·다중 탭 매트릭스 선택 |
+| `change-review` | 완료 보고·커밋 전, 리뷰 요청 | 요구 범위, 역할 쓰기 범위, 조용히 틀리는 경계, 소유 문서, 검증 보고 일치 |
 | `git-commit` | 커밋 | 제목 태그, 본문 항목, 트레일러 금지 |
+| `backlog` | 기능 착수·완료, 다음 작업 선택 | gap-analysis 단계 선택, 상태·판정 요약 갱신, 결정 이동 |
+| `spec-intake` | 요구사항 원문·개정본 수령 | 요구사항 번호 부여, 해석 기록, 백로그 단계 분할 |
+| `parallel` | 여러 역할로 나누는 작업, 병렬 실행·병합 | 역할 분해, worktree 격리, 인계 형식, 병합 순서 |
+
+## 역할과 소유 범위
+
+혼자 진행하며 작업을 역할 관점으로 나눈다. 역할의 공통 행동은 `.codex/agents/sheet-<역할>.md`가 소유하고, 이 표는 각 역할이 쓸 수 있는 경로를 소유한다. 표 밖 경로가 필요하면 소유 역할에 요청한다. 실행 방식과 병합은 `parallel` skill을 따른다.
+
+| 역할 | agent | 쓰기 범위 | 주 입력 |
+| --- | --- | --- | --- |
+| 기획 | `sheet-planner` | `docs/spec/requirements.md`, `docs/spec/gap-analysis.md` | 사람 결정, 사업 제안 |
+| 디자인 | `sheet-designer` | `apps/web/src/app/globals.css`, `apps/web/src/components/*.tsx`의 styled 정의 (디자인 시스템 패키지 없음) | 요구사항의 화면·흐름, `DESIGN.md` 5·10절 |
+| 프론트엔드 | `sheet-frontend` | `apps/web/src/components/`, `apps/web/src/hooks/`, `apps/web/src/stores/`, `apps/web/src/ai/`, `apps/web/src/app/`(`api/` 제외), `apps/web/e2e/` | 완료 조건, core 공개 API |
+| 백엔드 | `sheet-backend` | `packages/sheet-core/src/`(아래 프롬프트 파일 제외), `apps/web/src/collab/`, `apps/web/src/app/api/ai/route.ts` | 요구사항, `TECH_RULES.md` |
+| AI 프롬프트 | `sheet-prompt-engineer` | `apps/web/src/app/api/ai/prompt.ts`, `packages/sheet-core/src/ai/context.ts`·`models.ts`와 각 테스트 | AI 처리 요구, 출력 형식 |
+| 사업 | `sheet-business` | 없음(제안만) | 요구사항, 백로그의 남은 결정 |
+
+`README.md`·`TECH_RULES.md`·`DESIGN.md`·`AGENTS.md`·`docs/manual-scenarios.md`·`LLM_REPORT.md`·`docs/prompts.md`·검사 스크립트 같은 공통 파일은 변경한 역할이 자기 사실만 고치고, 겹치는 변경은 병합 담당이 정리한다. 디자인과 프론트는 같은 컴포넌트 파일을 쓰므로 순서대로 진행한다. 아직 없는 경로는 처음 필요해질 때 만든다.
 
 ## 작업 흐름
 
 1. **범위 분리.** 동작 변경 / 구조 변경 / 공동 편집×AI 정책 변경 / 문서 변경 중 무엇인지, 다중 탭 확인이 필요한지.
 2. **문서 선택.** `AGENTS.md` 작업 유형별 필독 표에 따라 소유 문서만 읽는다.
 3. **구현 근거 조사.** 문서보다 코드 우선.
-4. **계층 결정.** `layer-architecture`로 위치를 정하고, `test-policy`로 검증 계층을 정한다.
+4. **계층 결정.** `layer-architecture`로 위치를 정하고, `test-policy`로 검증 계층을 정한다. 역할을 지정받았으면 역할 소유 표의 쓰기 범위 안에서만 바꾼다.
 5. **코드·문서 동시 변경.** 결정이 확정되면 `DESIGN.md`, 파일이 옮겨지면 `folder-structure.md`, 단계가 끝나면 `gap-analysis.md`, LLM 제안을 고쳤으면 `LLM_REPORT.md`.
 6. **검증.** `pnpm test`·`typecheck`·`lint`·`check`, 런타임 변경 시 다중 탭 매트릭스.
-7. **커밋.** `git-commit` 규칙. 검증 결과와 미검증 항목을 본문에.
+7. **검토.** `change-review`로 diff·소유 문서·검증 보고를 확인한다.
+8. **커밋.** `git-commit` 규칙. 검증 결과와 미검증 항목을 본문에.
 
 ## 역할 분담: 사람이 뼈대, Agent가 구현
 
@@ -95,25 +115,27 @@ Claude  → CLAUDE.md (symlink) → AGENTS.md → .claude/skills/<skill>/SKILL.m
 
 작성 주체는 커밋 제목의 `[llm]`/`[human]`/`[llm+human]`으로 남기고, `LLM_REPORT.md` 역할 구분 표는 이 로그에서 집계한다.
 
-## 자동 검증 체계
+## 자동 검사와 한계
 
 `scripts/check-structure.sh` (`pnpm check`)가 검사하는 것:
 
 | 범주 | 검사 |
 | --- | --- |
-| 문서 | 필수 문서 존재, 에이전트용 문서 frontmatter(`title`, `kind`, `last_verified`; 산출 문서 `README.md`·`LLM_REPORT.md` 제외), 문서 안 인라인 코드 경로(`*.ts`, `*.tsx`, `*.md`, `*.sh`, `*.json`, `*.yaml`, `*.toml`)의 실제 존재 |
-| 진입점 | `CLAUDE.md → AGENTS.md` symlink, `.claude/skills/<n>/SKILL.md → .codex/skills/<n>/SKILL.md` symlink, skill frontmatter `name` 일치, 고아 symlink 없음 |
+| 문서 | 필수 문서 존재, 에이전트용 문서 frontmatter(`title`, `kind`, `last_verified`; 산출 문서 `README.md`·`LLM_REPORT.md` 제외), 문서 안 인라인 코드 경로(`*.ts`, `*.tsx`, `*.md`, `*.sh`, `*.json`, `*.yaml`, `*.toml`)와 Markdown 상대 링크의 실제 존재 |
+| 진입점 | `CLAUDE.md → AGENTS.md` symlink, `.claude/skills/<n>/SKILL.md → .codex/skills/<n>/SKILL.md`·`.claude/agents/<n>.md → .codex/agents/<n>.md` symlink, skill·역할 frontmatter `name`(디렉터리·파일명)·`description`, 고아 symlink 없음 |
 | 계층 규칙 | core: UI·프레임워크 import와 브라우저 전역 금지, web 별칭 import 금지. `components/`·`stores/`: `yjs` import 금지. `collab/`·`ai/`: React·Zustand·styled-components 금지. `collab/` 밖 `BroadcastChannel`·`indexedDB` 금지. `app/api/`: 클라이언트 계층 import 금지 |
 | 테스트 배치 | 단위 테스트는 core에만, core 모듈마다 `<module>.test.ts` 존재 (진입 index·공유 types 파일 제외). E2E `*.spec.ts`는 `apps/web/e2e/`에만 |
 | 비밀·개인정보 | `NEXT_PUBLIC_*KEY*`·`SECRET`·`TOKEN` 환경 변수 금지, 추적 파일에 `.env` 금지, 로컬 금칙어 목록 `.private-terms`(gitignore)의 단어가 추적 파일에 없는지 |
 
 검사는 grep 기반이다. 간접 참조, transaction 누락 같은 의미적 위반은 잡지 못한다 — 그것은 `TECH_RULES.md` 금지 표와 리뷰가 담당한다.
 
-## 현재 한계
+### 한계
 
 - CI가 없다. 검사는 로컬에서 실행하며 커밋 전 실행은 `git-commit` skill 절차에 의존한다.
 - 단위 테스트는 core만 대상이다. hooks·collab·컴포넌트는 다중 탭 수동 확인에 의존한다.
 - `last_verified`는 사람이 적는 날짜이며 만료 검사는 없다.
+- 역할 쓰기 범위 준수와 skill 본문의 의미는 검사하지 않는다 — `change-review` 대상이다.
+- 검사 스크립트 자체의 회귀 테스트는 없다.
 - 문서 경로 검사는 인라인 코드의 확장자 있는 경로만 본다. 폴더 표기와 fenced code block 안은 검사하지 않는다.
 
 ## 확장 조건

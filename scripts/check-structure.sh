@@ -40,6 +40,17 @@ for d in .claude/skills/*/; do
   n=$(basename "$d")
   [ -f ".codex/skills/$n/SKILL.md" ] || err "canonical 없는 skill: $d"
 done
+for f in .codex/agents/*.md; do
+  [ -e "$f" ] || continue
+  n=$(basename "$f" .md)
+  grep -q "^name: $n$" "$f" || err "agent name 불일치: $f"
+  grep -q '^description: .' "$f" || err "agent description 없음: $f"
+  [ "$(readlink ".claude/agents/$n.md")" = "../../.codex/agents/$n.md" ] || err "symlink 없음/잘못됨: .claude/agents/$n.md"
+done
+for f in .claude/agents/*; do
+  [ -e "$f" ] || [ -L "$f" ] || continue
+  [ -f ".codex/agents/$(basename "$f")" ] || err "canonical 없는 agent: $f"
+done
 
 # 4. 계층 규칙. 대상 폴더가 아직 없으면 건너뛴다.
 check_absent() { # dir pattern message
@@ -85,6 +96,15 @@ while IFS= read -r f; do
       if [[ "$p" == */* ]]; then [ -e "$p" ] || err "$f 가 없는 경로 참조: $p"
       else [ -n "$(find . -name "$p" -not -path '*/node_modules/*' -not -path './.git/*' -not -path '*/.next/*' | head -1)" ] \
         || err "$f 가 없는 파일 참조: $p"; fi
+    done
+done < <(find . -name '*.md' -type f -not -path './.git/*' -not -path '*/node_modules/*' -not -path './.claude/*')
+
+# 8. 문서 Markdown 상대 링크 존재 검사 (fenced block 밖, 외부 URL·앵커 제외). 문서 위치 기준.
+while IFS= read -r f; do
+  awk '/^```/{c=!c} !c' "$f" | grep -oE '\]\([^ )]+\)' | sed -E 's/^\]\(//; s/\)$//' | sort -u \
+  | while read -r t; do
+      case "$t" in http:*|https:*|mailto:*|\#*) continue;; esac
+      [ -e "$(dirname "$f")/${t%%#*}" ] || err "$f 의 깨진 링크: $t"
     done
 done < <(find . -name '*.md' -type f -not -path './.git/*' -not -path '*/node_modules/*' -not -path './.claude/*')
 

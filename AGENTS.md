@@ -1,14 +1,14 @@
 ---
 title: 저장소 작업 규범
 kind: rule
-last_verified: 2026-10-02
+last_verified: 2026-11-07
 ---
 
 # Collaborative Sheet — 공동 편집 + AI 편집 스프레드시트
 
 브라우저 탭 간 실시간 공동 편집(Yjs)과 LLM 편집 제안을 지원하는 웹 스프레드시트. pnpm workspace — 도메인 로직 `packages/sheet-core`(`@sheet/core`), Next.js 앱 `apps/web`(`@sheet/web`).
 
-이 문서는 저장소 규칙의 도구 중립 진입점이다. 백과사전이 아니라 라우터다 — 규칙 본문은 아래 소유 문서에서 읽는다. `CLAUDE.md`는 이 파일의 symlink이므로 본문을 복사하지 않는다. Codex는 이 파일과 `.codex/skills/`를, Claude는 `CLAUDE.md`와 `.claude/skills/`(symlink)를 통해 같은 본문을 읽는다.
+이 문서는 저장소 규칙의 도구 중립 진입점이다. 백과사전이 아니라 라우터다 — 규칙 본문은 아래 소유 문서에서 읽는다. `CLAUDE.md`는 이 파일의 symlink이므로 본문을 복사하지 않는다. Codex는 이 파일과 `.codex/skills/`·`.codex/agents/`를, Claude는 `CLAUDE.md`와 `.claude/skills/`·`.claude/agents/`(symlink)를 통해 같은 본문을 읽는다.
 
 ## 권위 순서 (충돌 시 위가 이긴다)
 
@@ -32,17 +32,22 @@ last_verified: 2026-10-02
 | 현재 폴더·파일 책임 스냅샷 | `docs/architecture/folder-structure.md` | 파일 추가·이동·삭제 |
 | 검증 계층 (단위 테스트·타입·린트·빌드·구조 검사·다중 탭 매트릭스)과 테스트 필수 대상 | `.codex/skills/test-policy/SKILL.md` | 테스트 계층·필수 대상 변경 |
 | 커밋 제목·본문·작성 주체 표기 규칙 | `.codex/skills/git-commit/SKILL.md` | 표기·본문 규칙 변경 |
+| 백로그 착수·완료·결정 반영 절차 | `.codex/skills/backlog/SKILL.md` | gap-analysis 운영 방식 변경 |
+| 요구사항 원문·개정본을 번호·백로그로 옮기는 절차 | `.codex/skills/spec-intake/SKILL.md` | 요구사항 번호 체계 변경 |
+| 완료 전 변경 검토 항목 | `.codex/skills/change-review/SKILL.md` | 조용히 틀리는 경계·검토 항목 변경 |
+| 역할별 공통 행동 | `.codex/agents/sheet-<역할>.md` | 역할 추가·행동 규칙 변경 |
+| 역할 분해·병렬 실행·병합 절차 | `.codex/skills/parallel/SKILL.md` | 병렬 실행 방식 변경 |
 | 수동 확인 시나리오 (단계·기대 결과, 자동/수동 구분)와 확인 기록(시나리오 ID별 결과) | `docs/manual-scenarios.md` | 사용자에게 보이는 동작 변경 |
 | LLM 활용 기록 (도구, 역할 구분, 기각·수정 사례, 핵심 프롬프트) | `LLM_REPORT.md` | LLM 제안을 기각·수정한 즉시 |
 | 프롬프트 원본 기록 (잘 된 것·실패한 것과 이유) | `docs/prompts.md` | 결과가 기대와 크게 달랐던 프롬프트, 재사용할 프롬프트 |
-| AI Agent 작업 지원 체계 | `docs/AI_AGENT_HARNESS.md` | 진입점, 문서 소유권, skill, 검사 흐름 변경 |
+| AI Agent 작업 지원 체계, 역할별 쓰기 범위 | `docs/AI_AGENT_HARNESS.md` | 진입점, 문서 소유권, skill, 역할, 검사 흐름 변경 |
 | 구조적 결정의 사유와 검증 결과 | Git 커밋 본문 | 구조 규칙 도입, 예외 승인, 동작 변경 |
 
 문서 추가 규칙 (이 문단이 소유):
 - 같은 사실의 소유자가 위 표에 있으면 새 문서 대신 그 문서를 갱신한다.
 - 새 소유 문서는 현재 코드·검증 증거로 내용을 채울 수 있을 때만 만들고, 만들면 이 표에 한 줄 추가한다. TBD 자리 문서와 빈 디렉터리는 만들지 않는다.
 - 에이전트용 문서(루트 규범 문서, `docs/`)는 `title`, `kind`(`rule|design|guide|snapshot|history|spec`), `last_verified` frontmatter를 둔다. 사람이 읽는 산출 문서(`README.md`, `LLM_REPORT.md`)는 frontmatter를 두지 않는다.
-- skill은 `name`, `description` frontmatter로 `.codex/skills/<name>/SKILL.md`에 두고 `.claude/skills/<name>/SKILL.md`는 symlink만 둔다.
+- skill은 `name`, `description` frontmatter로 `.codex/skills/<name>/SKILL.md`에 두고 `.claude/skills/<name>/SKILL.md`는 symlink만 둔다. 역할 정의는 `.codex/agents/<name>.md`(frontmatter `name`=파일명)에 두고 `.claude/agents/<name>.md`는 symlink만 둔다.
 - ADR·CI·PR 템플릿은 반복 비용이 생겼을 때 도입한다 (`docs/AI_AGENT_HARNESS.md` 확장 조건).
 
 ## 작업 유형별 필독
@@ -53,7 +58,11 @@ last_verified: 2026-10-02
 | 파일 추가·이동, 리팩토링, 새 패키지 | `.codex/skills/layer-architecture/SKILL.md`, `docs/architecture/folder-structure.md` |
 | 동기화·awareness·undo 변경 | `TECH_RULES.md` 상태 소유권·동기화 절, `DESIGN.md` |
 | AI 편집 흐름 변경 | `TECH_RULES.md` AI 절, `DESIGN.md` 공동 편집×AI 정책 |
-| 기능 착수·완료, 요구사항 상태 반영 | `docs/spec/requirements.md`, `docs/spec/gap-analysis.md`, `README.md` |
+| 기능 착수·완료, 요구사항 상태 반영 | `docs/spec/requirements.md`, `docs/spec/gap-analysis.md`, `README.md`, `.codex/skills/backlog/SKILL.md` |
+| 요구사항 원문·개정본 수령 | `.codex/skills/spec-intake/SKILL.md` |
+| 완료 보고·커밋 전 검토, 리뷰 요청 | `.codex/skills/change-review/SKILL.md` |
+| 역할을 지정받은 작업 | `.codex/agents/sheet-<역할>.md`, `docs/AI_AGENT_HARNESS.md` 역할 표 |
+| 여러 역할로 나누는 작업 | `.codex/skills/parallel/SKILL.md` |
 | 문서·Agent 체계 변경 | `docs/AI_AGENT_HARNESS.md`, 이 문서의 문서 추가 규칙 |
 
 ## 절대 금지 (이 문서가 소유)
@@ -76,9 +85,10 @@ last_verified: 2026-10-02
 
 ## 작업 흐름
 
-1. 시작 전에 범위를 나눈다 — 동작 변경인지, 구조 변경인지, 정책(공동 편집×AI) 변경인지, 다중 탭 확인이 필요한지.
+1. 시작 전에 범위를 나눈다 — 동작 변경인지, 구조 변경인지, 정책(공동 편집×AI) 변경인지, 다중 탭 확인이 필요한지. 기능 작업은 `docs/spec/gap-analysis.md`의 가장 앞선 미완료 단계에서 시작하고 끝나면 상태를 갱신한다.
 2. 변경 범위의 소유 문서만 읽는다. 전부 읽지 않는다.
 3. 코드를 바꾸는 모든 작업은 `.codex/skills/test-policy/SKILL.md`를 적용한다 — core 순수 로직은 테스트를 함께 두고, `pnpm test`·`pnpm typecheck`·`pnpm lint`·`pnpm check`를 통과시키고, 런타임 동작이 바뀌면 다중 탭 확인 결과를 `docs/manual-scenarios.md` 확인 기록에 남긴다.
 4. 사실이 바뀌면 문서 맵의 소유 문서를 같은 커밋에서 갱신하고 `last_verified`를 갱신 날짜로 맞춘다.
-5. 커밋은 의미 단위. 제목 끝에 작성 주체 `[llm]`/`[human]`/`[llm+human]`을 표기하고 본문에 사유와 검증을 남긴다 (`.codex/skills/git-commit/SKILL.md`).
-6. 완료 보고에는 실행한 검증과 실행하지 못한 검증을 구분해 적는다.
+5. 완료 전 `.codex/skills/change-review/SKILL.md`로 diff·소유 문서·검증 보고를 검토한다.
+6. 커밋은 의미 단위. 제목 끝에 작성 주체 `[llm]`/`[human]`/`[llm+human]`을 표기하고 본문에 사유와 검증을 남긴다 (`.codex/skills/git-commit/SKILL.md`).
+7. 완료 보고에는 실행한 검증과 실행하지 못한 검증을 구분해 적는다.
