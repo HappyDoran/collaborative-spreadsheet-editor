@@ -12,4 +12,3 @@ next-env.d.ts
 .private-terms
 test-results/
 playwright-report/
-.claude/settings.local.json
